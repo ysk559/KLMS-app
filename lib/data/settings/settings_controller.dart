@@ -11,8 +11,12 @@ final sharedPreferencesProvider = Provider<SharedPreferences>(
 final settingsProvider =
     NotifierProvider<SettingsController, AppSettings>(SettingsController.new);
 
+/// SharedPreferences key for the serialized [AppSettings]. Shared with the
+/// background isolate (see lib/background/background_sync.dart).
+const String kSettingsPrefsKey = 'app_settings_v1';
+
 class SettingsController extends Notifier<AppSettings> {
-  static const _prefsKey = 'app_settings_v1';
+  static const _prefsKey = kSettingsPrefsKey;
 
   @override
   AppSettings build() {

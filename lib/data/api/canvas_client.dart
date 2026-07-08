@@ -144,6 +144,29 @@ class CanvasClient {
     return results;
   }
 
+  /// Assignment ids the user marked as done on the Canvas planner
+  /// (the LMS "完了にする" checkmark), regardless of submission state.
+  Future<Set<int>> getPlannerCompletedAssignmentIds({DateTime? since}) async {
+    final rows = await _getPaginated('/planner/items', query: {
+      'start_date': (since ?? DateTime.now().subtract(const Duration(days: 30)))
+          .toUtc()
+          .toIso8601String(),
+    });
+    final ids = <int>{};
+    for (final r in rows) {
+      final override = r['planner_override'];
+      if (override is! Map || override['marked_complete'] != true) continue;
+      // Quizzes/discussions surface their assignment via the plannable.
+      final plannable = r['plannable'];
+      final assignmentId = switch (r['plannable_type']) {
+        'assignment' => r['plannable_id'] as int?,
+        _ => plannable is Map ? plannable['assignment_id'] as int? : null,
+      };
+      if (assignmentId != null) ids.add(assignmentId);
+    }
+    return ids;
+  }
+
   /// Modules (with items) of a course — the "dropdown" sections of the page.
   Future<List<CourseModule>> getModules(int courseId) async {
     final rows = await _getPaginated(

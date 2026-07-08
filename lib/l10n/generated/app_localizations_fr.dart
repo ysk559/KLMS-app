@@ -288,6 +288,33 @@ class AppLocalizationsFr extends AppLocalizations {
   String get endTime => 'Fin';
 
   @override
+  String get sectionSync => 'Synchronisation';
+
+  @override
+  String get backgroundSync => 'Synchronisation en arrière-plan';
+
+  @override
+  String get backgroundSyncDesc =>
+      'Récupère automatiquement devoirs et annonces même si l\'app est fermée (requis pour les notifications d\'annonces)';
+
+  @override
+  String get syncIntervalOff => 'Désactivée';
+
+  @override
+  String everyMinutes(int m) {
+    return 'Toutes les $m min';
+  }
+
+  @override
+  String everyHours(int h) {
+    return 'Toutes les $h h';
+  }
+
+  @override
+  String get iosSyncNote =>
+      'Sur iOS, l\'intervalle réel est décidé par le système (selon l\'utilisation)';
+
+  @override
   String get sectionAccount => 'Compte';
 
   @override

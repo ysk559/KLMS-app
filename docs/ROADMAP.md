@@ -19,10 +19,12 @@
 
 ## Phase 2 — バックグラウンド同期・通知強化
 
-- [ ] Android: WorkManager による定期バックグラウンド同期
-- [ ] iOS: BGAppRefreshTask 対応
-- [ ] 新着アナウンスのローカルプッシュ通知(バックグラウンド同期時)
-- [ ] Planner API 対応(LMS側の「完了マーク」= planner override の取得/書き込み)
+- [x] Android: WorkManager による定期バックグラウンド同期(間隔は設定で変更可)
+- [x] iOS: BGAppRefreshTask 対応(実行間隔はOS任せ)
+- [x] 新着アナウンスのローカルプッシュ通知(バックグラウンド同期時)
+- [x] Planner API 対応(LMS側の「完了マーク」の取得。書き込みは矛盾検知を
+      壊すため行わない — docs/QUESTIONS.md 参照)
+- [x] アクセストークンUIの撤去(KLMSのトークンは1時間で失効するため)
 - [ ] 同期の堅牢化(レート制限対応、失敗リトライ、差分取得の最適化)
 - [ ] アプリ内ブラウザからのファイルダウンロード/PDFビューア改善
 

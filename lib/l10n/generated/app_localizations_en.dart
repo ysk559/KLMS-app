@@ -289,6 +289,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get endTime => 'End';
 
   @override
+  String get sectionSync => 'Sync';
+
+  @override
+  String get backgroundSync => 'Background sync';
+
+  @override
+  String get backgroundSyncDesc =>
+      'Fetch assignments and announcements automatically even when the app is closed (required for announcement notifications)';
+
+  @override
+  String get syncIntervalOff => 'Off';
+
+  @override
+  String everyMinutes(int m) {
+    return 'Every $m min';
+  }
+
+  @override
+  String everyHours(int h) {
+    return 'Every $h h';
+  }
+
+  @override
+  String get iosSyncNote =>
+      'On iOS the actual interval is decided by the OS (depends on usage)';
+
+  @override
   String get sectionAccount => 'Account';
 
   @override

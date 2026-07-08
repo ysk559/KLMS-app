@@ -48,6 +48,7 @@ class AppSettings {
     this.timetableLastDay = DateTime.friday,
     this.periodsPerDay = 6,
     this.periodTimes = kDefaultPeriodTimes,
+    this.backgroundSyncMinutes = 30,
     this.lastSyncedAt,
   });
 
@@ -65,6 +66,10 @@ class AppSettings {
   final int timetableLastDay;
   final int periodsPerDay;
   final List<PeriodTime> periodTimes;
+
+  /// Background sync interval in minutes; 0 disables background sync.
+  /// (Android: WorkManager honors this, min 15. iOS: cadence is up to the OS.)
+  final int backgroundSyncMinutes;
   final DateTime? lastSyncedAt;
 
   Duration get reminderOffset =>
@@ -84,6 +89,7 @@ class AppSettings {
     int? timetableLastDay,
     int? periodsPerDay,
     List<PeriodTime>? periodTimes,
+    int? backgroundSyncMinutes,
     DateTime? lastSyncedAt,
   }) {
     return AppSettings(
@@ -101,6 +107,8 @@ class AppSettings {
       timetableLastDay: timetableLastDay ?? this.timetableLastDay,
       periodsPerDay: periodsPerDay ?? this.periodsPerDay,
       periodTimes: periodTimes ?? this.periodTimes,
+      backgroundSyncMinutes:
+          backgroundSyncMinutes ?? this.backgroundSyncMinutes,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     );
   }
@@ -118,6 +126,7 @@ class AppSettings {
         'timetableLastDay': timetableLastDay,
         'periodsPerDay': periodsPerDay,
         'periodTimes': periodTimes.map((e) => e.toJson()).toList(),
+        'backgroundSyncMinutes': backgroundSyncMinutes,
         'lastSyncedAt': lastSyncedAt?.toIso8601String(),
       });
 
@@ -146,6 +155,7 @@ class AppSettings {
               ?.map((e) => PeriodTime.fromJson(e as Map<String, dynamic>))
               .toList() ??
           kDefaultPeriodTimes,
+      backgroundSyncMinutes: json['backgroundSyncMinutes'] as int? ?? 30,
       lastSyncedAt: json['lastSyncedAt'] != null
           ? DateTime.tryParse(json['lastSyncedAt'] as String)
           : null,

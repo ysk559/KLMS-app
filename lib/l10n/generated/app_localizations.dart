@@ -616,6 +616,48 @@ abstract class AppLocalizations {
   /// **'終了'**
   String get endTime;
 
+  /// No description provided for @sectionSync.
+  ///
+  /// In ja, this message translates to:
+  /// **'同期'**
+  String get sectionSync;
+
+  /// No description provided for @backgroundSync.
+  ///
+  /// In ja, this message translates to:
+  /// **'バックグラウンド同期'**
+  String get backgroundSync;
+
+  /// No description provided for @backgroundSyncDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'アプリを開いていなくても課題・アナウンスを自動取得します(アナウンス通知に必要)'**
+  String get backgroundSyncDesc;
+
+  /// No description provided for @syncIntervalOff.
+  ///
+  /// In ja, this message translates to:
+  /// **'オフ'**
+  String get syncIntervalOff;
+
+  /// No description provided for @everyMinutes.
+  ///
+  /// In ja, this message translates to:
+  /// **'{m}分ごと'**
+  String everyMinutes(int m);
+
+  /// No description provided for @everyHours.
+  ///
+  /// In ja, this message translates to:
+  /// **'{h}時間ごと'**
+  String everyHours(int h);
+
+  /// No description provided for @iosSyncNote.
+  ///
+  /// In ja, this message translates to:
+  /// **'iOSでは実行間隔はOSが決定します(利用状況に依存)'**
+  String get iosSyncNote;
+
   /// No description provided for @sectionAccount.
   ///
   /// In ja, this message translates to:

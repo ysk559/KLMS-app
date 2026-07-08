@@ -87,6 +87,15 @@ class TaskRepository {
     );
   }
 
+  /// Marks tasks as completed on the LMS side (e.g. planner "完了" mark).
+  Future<void> markLmsCompleted(Set<int> taskIds) async {
+    if (taskIds.isEmpty) return;
+    final ids = taskIds.join(',');
+    await _db.db.rawUpdate(
+        'UPDATE tasks SET lms_completed = 1, conflict_notified = 0 '
+        'WHERE id IN ($ids) AND lms_completed = 0');
+  }
+
   Future<void> markConflictNotified(Iterable<int> taskIds) async {
     if (taskIds.isEmpty) return;
     final ids = taskIds.join(',');

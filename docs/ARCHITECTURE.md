@@ -28,10 +28,9 @@
    `X-CSRF-Token` ヘッダに転記する。
 4. セッション失効(401/リダイレクト検知)時は再ログインを促す。WebView には
    Okta 側 Cookie が残っているため、多くの場合パスワード再入力なしで再認可される。
-5. 代替: KLMS がユーザーによるアクセストークン発行を許可している場合は、
-   設定画面からトークンを入力して `Authorization: Bearer` 方式に切替可能
-   (こちらの方が長寿命で安定)。トークンは `flutter_secure_storage`
-   (iOS Keychain / Android EncryptedSharedPreferences) に保存する。
+5. ~~代替: アクセストークン方式~~ → **不採用**。KLMS のトークンは発行から
+   1時間で失効するため実用にならない(検証済み)。AuthService にはトークン対応
+   コードが残っているが、設定 UI からは撤去した。
 
 アプリ内からKLMSのページを開くときは同じ WebView 環境を使うため、認証済みのまま閲覧できる。
 
@@ -95,14 +94,21 @@ lib/
   l10n/         ja / en / fr
 ```
 
-## バックグラウンド同期(Phase 2 予定)
+## バックグラウンド同期(Phase 2 で実装済み)
 
-- Android: `workmanager` で15分〜間隔の定期同期。
-- iOS: BGAppRefreshTask(OS任せで実行頻度は不定。ユーザーのアプリ利用頻度に依存)。
-- どちらも同期後に締切リマインダーを再スケジュール、新着アナウンスをローカル通知。
+`lib/background/background_sync.dart` + `workmanager` パッケージ。
+
+- Android: WorkManager の定期タスク(15分/30分/1時間/3時間、設定で変更・オフ可)。
+- iOS: BGAppRefreshTask(`jp.keio.klms.klmsApp.periodicSync`)。実行頻度は OS が
+  利用状況から決定するため保証なし。Info.plist の
+  `BGTaskSchedulerPermittedIdentifiers` と AppDelegate.swift で登録している。
+- バックグラウンド isolate で `runBackgroundSync()` が DB・通知を初期化して
+  `SyncService` を実行し、締切リマインダー再スケジュールと新着アナウンスの
+  ローカル通知まで行う。アプリ復帰時(resumed)には UI 側が DB を読み直す。
 - **リアルタイム性が必要なら push サーバーが必要**だが、認証情報を外部サーバーに
-  預けることになるため採用しない(プライバシー優先)。締切リマインダーは
-  事前スケジュール型なのでバックグラウンド実行に依存せず正確に発火する。
+  預けることになるため採用しない(プライバシー優先・ユーザー合意済み)。
+  締切リマインダーは事前スケジュール型なのでバックグラウンド実行に依存せず
+  正確に発火する。
 
 ## ウィジェット(Phase 3 予定)
 

@@ -1,7 +1,11 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../background/background_sync.dart';
 import '../../core/constants.dart';
 import '../../data/providers.dart';
 import '../../data/settings/settings_controller.dart';
@@ -90,6 +94,32 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const ExcludeCoursesPage())),
           ),
+          _SectionHeader(l10n.sectionSync),
+          ListTile(
+            leading: const Icon(Icons.sync),
+            title: Text(l10n.backgroundSync),
+            subtitle: Text(!kIsWeb && Platform.isIOS
+                ? '${l10n.backgroundSyncDesc}\n${l10n.iosSyncNote}'
+                : l10n.backgroundSyncDesc),
+            trailing: DropdownButton<int>(
+              value: settings.backgroundSyncMinutes,
+              items: [
+                DropdownMenuItem(value: 0, child: Text(l10n.syncIntervalOff)),
+                for (final m in const [15, 30, 60, 180])
+                  DropdownMenuItem(
+                    value: m,
+                    child: Text(m < 60
+                        ? l10n.everyMinutes(m)
+                        : l10n.everyHours(m ~/ 60)),
+                  ),
+              ],
+              onChanged: (v) {
+                if (v == null) return;
+                notifier.update((s) => s.copyWith(backgroundSyncMinutes: v));
+                BackgroundSyncScheduler.apply(ref.read(settingsProvider));
+              },
+            ),
+          ),
           _SectionHeader(l10n.sectionCourses),
           ListTile(
             leading: const Icon(Icons.short_text),
@@ -120,12 +150,6 @@ class SettingsPage extends ConsumerWidget {
                             builder: (_) => const LoginWebViewPage())),
                     child: Text(l10n.loginButton),
                   ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.key_outlined),
-            title: Text(l10n.accessToken),
-            subtitle: Text(l10n.accessTokenDesc),
-            onTap: () => _editAccessToken(context, ref, l10n),
           ),
           _SectionHeader(l10n.sectionAbout),
           ListTile(
@@ -330,37 +354,6 @@ class SettingsPage extends ConsumerWidget {
         },
       ),
     );
-  }
-
-  Future<void> _editAccessToken(
-      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
-    final authService = ref.read(authServiceProvider);
-    final controller =
-        TextEditingController(text: await authService.getAccessToken() ?? '');
-    if (!context.mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.accessToken),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: const InputDecoration(hintText: 'Canvas access token'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.cancel)),
-          FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.save)),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await authService.setAccessToken(controller.text.trim());
-      ref.read(dbVersionProvider.notifier).state++;
-    }
   }
 
   Future<void> _confirmLogout(

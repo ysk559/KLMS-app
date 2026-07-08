@@ -68,6 +68,7 @@ void main() {
         excludeWords: ['再提出'],
         excludedCourseIds: {5, 7},
         periodsPerDay: 7,
+        backgroundSyncMinutes: 60,
       );
       final restored = AppSettings.fromJsonString(settings.toJsonString());
       expect(restored.reminderHours, 3);
@@ -75,6 +76,7 @@ void main() {
       expect(restored.excludeWords, ['再提出']);
       expect(restored.excludedCourseIds, {5, 7});
       expect(restored.periodsPerDay, 7);
+      expect(restored.backgroundSyncMinutes, 60);
       expect(restored.reminderOffset, const Duration(hours: 3, minutes: 30));
     });
 

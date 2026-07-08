@@ -283,6 +283,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get endTime => '終了';
 
   @override
+  String get sectionSync => '同期';
+
+  @override
+  String get backgroundSync => 'バックグラウンド同期';
+
+  @override
+  String get backgroundSyncDesc => 'アプリを開いていなくても課題・アナウンスを自動取得します(アナウンス通知に必要)';
+
+  @override
+  String get syncIntervalOff => 'オフ';
+
+  @override
+  String everyMinutes(int m) {
+    return '$m分ごと';
+  }
+
+  @override
+  String everyHours(int h) {
+    return '$h時間ごと';
+  }
+
+  @override
+  String get iosSyncNote => 'iOSでは実行間隔はOSが決定します(利用状況に依存)';
+
+  @override
   String get sectionAccount => 'アカウント';
 
   @override

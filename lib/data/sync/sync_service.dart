@@ -53,7 +53,17 @@ class SyncService {
       }));
     }
 
-    // 3. Completion conflicts: done in app, not done on LMS → notify once.
+    // 3. Canvas planner: the LMS-side "mark as done" checkmark also counts
+    // as completed on the LMS. Optional — older Canvas instances may not
+    // expose the planner API, so failures are non-fatal.
+    try {
+      final plannerDone = await client.getPlannerCompletedAssignmentIds();
+      await taskRepository.markLmsCompleted(plannerDone);
+    } on CanvasAuthException {
+      rethrow;
+    } catch (_) {}
+
+    // 4. Completion conflicts: done in app, not done on LMS → notify once.
     final conflicts = await taskRepository.getUnnotifiedConflicts();
     for (final task in conflicts) {
       final decorated =
@@ -66,7 +76,7 @@ class SyncService {
     }
     await taskRepository.markConflictNotified(conflicts.map((t) => t.id));
 
-    // 4. Announcements.
+    // 5. Announcements.
     final announcements = await client.getAnnouncements(
       ids,
       since: DateTime.now().subtract(_announcementWindow),
@@ -81,7 +91,7 @@ class SyncService {
       }
     }
 
-    // 5. Deadline reminders.
+    // 6. Deadline reminders.
     final incomplete = await taskRepository.getIncomplete();
     await notifications.rescheduleDeadlineReminders(
       incompleteTasks: incomplete,

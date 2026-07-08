@@ -38,12 +38,14 @@ class HomeShell extends ConsumerStatefulWidget {
   ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends ConsumerState<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell>
+    with WidgetsBindingObserver {
   int _index = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(notificationServiceProvider).requestPermissions();
       // Refresh silently on launch when already signed in.
@@ -52,6 +54,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ref.read(syncControllerProvider.notifier).syncNow();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A background sync may have updated the DB while we were away.
+    if (state == AppLifecycleState.resumed) {
+      ref.read(dbVersionProvider.notifier).state++;
+    }
   }
 
   @override
