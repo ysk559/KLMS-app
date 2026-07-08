@@ -230,6 +230,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get minutesUnit => '分';
 
   @override
+  String get minutesBeforeUnit => '分前';
+
+  @override
+  String get excludeApplyToList => '課題一覧からも隠す';
+
+  @override
+  String get excludeApplyToListDesc => 'オフにすると除外は通知のみに適用されます';
+
+  @override
+  String get close => '閉じる';
+
+  @override
   String get excludeWords => '除外ワード';
 
   @override

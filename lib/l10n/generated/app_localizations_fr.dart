@@ -234,6 +234,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get minutesUnit => 'min';
 
   @override
+  String get minutesBeforeUnit => 'min avant';
+
+  @override
+  String get excludeApplyToList => 'Masquer aussi dans la liste';
+
+  @override
+  String get excludeApplyToListDesc =>
+      'Si désactivé, les exclusions ne s\'appliquent qu\'aux rappels';
+
+  @override
+  String get close => 'Fermer';
+
+  @override
   String get excludeWords => 'Mots exclus';
 
   @override

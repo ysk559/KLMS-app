@@ -110,13 +110,18 @@ class CourseNameParser {
     }
 
     // Tail after the slot bracket up to the room bracket:
-    // `teacher name` + ` ` + `course title` (title itself may contain spaces).
+    // `teacher name` + separator + `course title`.
+    // When a full-width space is present it is the teacher/title separator
+    // (teacher names may contain a half-width space, e.g. `今井 倫太`);
+    // otherwise fall back to the first whitespace.
     final tail = name.substring(slotMatch.end, tailEnd).trim();
     String? teacher;
     String displayName = tail;
-    final spaceIndex = tail.indexOf(RegExp(r'[\s　]'));
+    final fullWidthIndex = tail.indexOf('　');
+    final spaceIndex =
+        fullWidthIndex > 0 ? fullWidthIndex : tail.indexOf(RegExp(r'\s'));
     if (spaceIndex > 0) {
-      teacher = tail.substring(0, spaceIndex);
+      teacher = tail.substring(0, spaceIndex).trim();
       displayName = tail.substring(spaceIndex + 1).trim();
     }
     if (displayName.isEmpty) {

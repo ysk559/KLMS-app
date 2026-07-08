@@ -2,10 +2,19 @@ package jp.keio.klms.klms_app.widgets
 
 import android.app.PendingIntent
 import android.content.Context
+import android.net.Uri
+import es.antonborri.home_widget.HomeWidgetLaunchIntent
+import jp.keio.klms.klms_app.MainActivity
 import org.json.JSONObject
 import java.util.Calendar
 
-data class TimetableEntry(val day: Int, val period: Int, val name: String, val room: String?)
+data class TimetableEntry(
+    val day: Int,
+    val period: Int,
+    val name: String,
+    val room: String?,
+    val courseId: Int,
+)
 
 data class PeriodTime(val startMinutes: Int, val endMinutes: Int) {
     fun label(m: Int): String = "%d:%02d".format(m / 60, m % 60)
@@ -54,6 +63,7 @@ class Timetable(json: String?) {
                                 period = e.optInt("p"),
                                 name = e.optString("n"),
                                 room = if (e.has("r")) e.optString("r") else null,
+                                courseId = e.optInt("id"),
                             )
                         )
                     }
@@ -96,13 +106,16 @@ class Timetable(json: String?) {
 
         fun dayLabel(isoDay: Int): String = DAY_LABELS.getOrElse(isoDay - 1) { "?" }
 
-        /** PendingIntent that opens the app when a widget is tapped. */
-        fun launchIntent(context: Context): PendingIntent? {
-            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-                ?: return null
-            return PendingIntent.getActivity(
-                context, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        /**
+         * PendingIntent that opens the app on a specific destination.
+         * The `homeWidget` query parameter is required by the home_widget
+         * plugin so the Flutter side receives the URI.
+         */
+        fun launchIntent(context: Context, destination: String): PendingIntent {
+            return HomeWidgetLaunchIntent.getActivity(
+                context,
+                MainActivity::class.java,
+                Uri.parse("klmsapp://$destination?homeWidget"),
             )
         }
     }

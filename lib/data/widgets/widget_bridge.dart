@@ -4,7 +4,6 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:home_widget/home_widget.dart';
 
-import '../../core/utils/formatting.dart';
 import '../models/course.dart';
 import '../models/task_item.dart';
 import '../repositories/course_repository.dart';
@@ -51,10 +50,15 @@ class WidgetBridge {
     }
     final coursesById = {for (final c in courses) c.id: c};
 
+    final visibleTasks = settings.excludeAlsoFromList
+        ? tasks.where((t) => !settings.excludesTask(t.title, t.courseId))
+        : tasks;
     final taskJson = jsonEncode([
-      for (final t in tasks.take(10))
+      for (final t in visibleTasks.take(10))
         {
-          't': decorateTaskTitle(t.title, coursesById[t.courseId]),
+          't': t.title,
+          // Course label (nickname when set) rendered separately by widgets.
+          'c': coursesById[t.courseId]?.shortLabel ?? '',
           if (t.dueAt != null) 'd': t.dueAt!.toLocal().toIso8601String(),
         },
     ]);
@@ -66,7 +70,9 @@ class WidgetBridge {
         entries.add({
           'd': slot.weekday,
           'p': slot.period,
-          'n': course.shortLabel,
+          // Timetable always shows the real course title (no nicknames).
+          'n': course.parsed.displayName,
+          'id': course.id,
           if (course.parsed.room != null) 'r': course.parsed.room,
         });
       }

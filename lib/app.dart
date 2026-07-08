@@ -1,10 +1,16 @@
+import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
+import 'package:intl/intl.dart';
 
 import 'core/theme/app_theme.dart';
 import 'data/providers.dart';
 import 'data/settings/settings_controller.dart';
 import 'features/home/home_page.dart';
+import 'features/pages/course_detail_page.dart';
 import 'features/pages/courses_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tasks/tasks_page.dart';
@@ -17,6 +23,9 @@ class KlmsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    // Keep intl (weekday/date names) in sync with the app language.
+    Intl.defaultLocale =
+        settings.localeCode ?? PlatformDispatcher.instance.locale.languageCode;
     return MaterialApp(
       title: 'KLMS',
       debugShowCheckedModeBanner: false,
@@ -41,6 +50,7 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell>
     with WidgetsBindingObserver {
   int _index = 0;
+  StreamSubscription<Uri?>? _widgetClickSubscription;
 
   @override
   void initState() {
@@ -48,6 +58,7 @@ class _HomeShellState extends ConsumerState<HomeShell>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(notificationServiceProvider).requestPermissions();
+      _listenWidgetClicks();
       // Refresh silently on launch when already signed in.
       final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
       if (loggedIn && mounted) {
@@ -56,8 +67,40 @@ class _HomeShellState extends ConsumerState<HomeShell>
     });
   }
 
+  /// Deep links from home-screen widgets (klmsapp://tasks | timetable |
+  /// `course/<id>`).
+  void _listenWidgetClicks() {
+    try {
+      HomeWidget.initiallyLaunchedFromHomeWidget().then(_handleWidgetUri);
+      _widgetClickSubscription =
+          HomeWidget.widgetClicked.listen(_handleWidgetUri);
+    } catch (_) {}
+  }
+
+  Future<void> _handleWidgetUri(Uri? uri) async {
+    if (uri == null || !mounted) return;
+    switch (uri.host) {
+      case 'tasks':
+        setState(() => _index = 1);
+      case 'timetable':
+        setState(() => _index = 3);
+      case 'course':
+        final id = uri.pathSegments.isNotEmpty
+            ? int.tryParse(uri.pathSegments.first)
+            : null;
+        if (id == null) return;
+        final course =
+            await ref.read(courseRepositoryProvider).getById(id);
+        if (course != null && mounted) {
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => CourseDetailPage(course: course)));
+        }
+    }
+  }
+
   @override
   void dispose() {
+    _widgetClickSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

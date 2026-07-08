@@ -2,11 +2,13 @@ import 'package:intl/intl.dart';
 
 import '../../data/models/course.dart';
 
-/// `[nickname]title` if the course has a nickname, otherwise just the title.
+/// `[course label]title` — the label is the nickname when set, otherwise
+/// the parsed course title.
 String decorateTaskTitle(String title, Course? course) {
-  final nickname = course?.nickname;
-  if (nickname == null || nickname.isEmpty) return title;
-  return '[$nickname]$title';
+  if (course == null) return title;
+  final label = course.shortLabel;
+  if (label.isEmpty) return title;
+  return '[$label]$title';
 }
 
 String formatDateTimeShort(DateTime dt) =>

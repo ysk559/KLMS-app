@@ -514,6 +514,30 @@ abstract class AppLocalizations {
   /// **'分'**
   String get minutesUnit;
 
+  /// No description provided for @minutesBeforeUnit.
+  ///
+  /// In ja, this message translates to:
+  /// **'分前'**
+  String get minutesBeforeUnit;
+
+  /// No description provided for @excludeApplyToList.
+  ///
+  /// In ja, this message translates to:
+  /// **'課題一覧からも隠す'**
+  String get excludeApplyToList;
+
+  /// No description provided for @excludeApplyToListDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'オフにすると除外は通知のみに適用されます'**
+  String get excludeApplyToListDesc;
+
+  /// No description provided for @close.
+  ///
+  /// In ja, this message translates to:
+  /// **'閉じる'**
+  String get close;
+
   /// No description provided for @excludeWords.
   ///
   /// In ja, this message translates to:

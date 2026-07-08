@@ -78,7 +78,6 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _pickReminderOffset(context, ref, l10n),
           ),
           ListTile(
-            enabled: settings.deadlineReminderEnabled,
             leading: const Icon(Icons.filter_alt_outlined),
             title: Text(l10n.excludeWords),
             subtitle: Text(settings.excludeWords.isEmpty
@@ -87,12 +86,19 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _editExcludeWords(context, ref, l10n),
           ),
           ListTile(
-            enabled: settings.deadlineReminderEnabled,
             leading: const Icon(Icons.playlist_remove),
             title: Text(l10n.excludeCourses),
             subtitle: Text(l10n.excludeCoursesDesc),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => const ExcludeCoursesPage())),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.visibility_off_outlined),
+            title: Text(l10n.excludeApplyToList),
+            subtitle: Text(l10n.excludeApplyToListDesc),
+            value: settings.excludeAlsoFromList,
+            onChanged: (v) =>
+                notifier.update((s) => s.copyWith(excludeAlsoFromList: v)),
           ),
           _SectionHeader(l10n.sectionSync),
           ListTile(
@@ -265,7 +271,7 @@ class SettingsPage extends ConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(l10n.minutesUnit),
+                child: Text(l10n.minutesBeforeUnit),
               ),
             ],
           ),
@@ -301,6 +307,15 @@ class SettingsPage extends ConsumerWidget {
             setState(() {});
           }
 
+          void addPendingWord() {
+            final w = controller.text.trim();
+            final current = ref.read(settingsProvider).excludeWords;
+            if (w.isNotEmpty && !current.contains(w)) {
+              save([...current, w]);
+              controller.clear();
+            }
+          }
+
           return AlertDialog(
             title: Text(l10n.excludeWords),
             content: SizedBox(
@@ -325,30 +340,23 @@ class SettingsPage extends ConsumerWidget {
                       hintText: l10n.addWord,
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.add),
-                        onPressed: () {
-                          final w = controller.text.trim();
-                          if (w.isNotEmpty && !words.contains(w)) {
-                            save([...words, w]);
-                            controller.clear();
-                          }
-                        },
+                        onPressed: addPendingWord,
                       ),
                     ),
-                    onSubmitted: (_) {
-                      final w = controller.text.trim();
-                      if (w.isNotEmpty && !words.contains(w)) {
-                        save([...words, w]);
-                        controller.clear();
-                      }
-                    },
+                    onSubmitted: (_) => addPendingWord(),
                   ),
                 ],
               ),
             ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(l10n.ok)),
+                  onPressed: () {
+                    // Closing also commits any text still in the field, so
+                    // forgetting to tap "+" doesn't lose the word.
+                    addPendingWord();
+                    Navigator.of(context).pop();
+                  },
+                  child: Text(l10n.close)),
             ],
           );
         },

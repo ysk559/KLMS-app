@@ -3,6 +3,8 @@ import 'dart:ui' show DartPluginRegistrant, PlatformDispatcher;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' show Locale, WidgetsFlutterBinding;
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -56,6 +58,11 @@ Future<bool> runBackgroundSync() async {
 
   final notifications = NotificationService();
   await notifications.init();
+
+  // Localized dates in notification texts.
+  await initializeDateFormatting();
+  Intl.defaultLocale =
+      settings.localeCode ?? PlatformDispatcher.instance.locale.languageCode;
 
   final database = await AppDatabase.open();
   try {

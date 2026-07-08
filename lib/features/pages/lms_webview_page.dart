@@ -54,16 +54,23 @@ class _LmsWebViewPageState extends State<LmsWebViewPage> {
 }
 
 /// Renders raw HTML (e.g. an announcement body) inside the app.
+/// [title] is the app-bar text (course name for announcements) and
+/// [heading] an optional headline shown above the body.
 class HtmlContentPage extends StatelessWidget {
-  const HtmlContentPage({super.key, required this.title, required this.html});
+  const HtmlContentPage(
+      {super.key, required this.title, required this.html, this.heading});
 
   final String title;
   final String html;
+  final String? heading;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final headingHtml = heading != null
+        ? '<h2 style="margin-top:0;font-size:1.2em;">${_escapeHtml(heading!)}</h2>'
+        : '';
     final page = '''
 <!doctype html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -73,7 +80,7 @@ class HtmlContentPage extends StatelessWidget {
          background: ${isDark ? '#111318' : '#ffffff'};
          color: ${isDark ? '#e2e2e9' : '#1a1b21'}; }
   a { color: #4a6fd4; } img { max-width: 100%; height: auto; }
-</style></head><body>$html</body></html>''';
+</style></head><body>$headingHtml$html</body></html>''';
     return Scaffold(
       appBar: AppBar(
           title: Text(title, overflow: TextOverflow.ellipsis),
@@ -84,4 +91,9 @@ class HtmlContentPage extends StatelessWidget {
       ),
     );
   }
+
+  static String _escapeHtml(String s) => s
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
 }

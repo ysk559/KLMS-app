@@ -6,8 +6,13 @@ class KlmsConstants {
   static const String loginUrl = '$baseUrl/login';
   static const String apiBase = '$baseUrl/api/v1';
 
-  /// Cookie that indicates an authenticated Canvas session.
-  static const String sessionCookieName = 'canvas_session';
+  /// Cookies that indicate an authenticated Canvas session (the name
+  /// differs between Canvas versions/configurations).
+  static const Set<String> sessionCookieNames = {
+    'canvas_session',
+    '_normandy_session',
+    '_legacy_normandy_session',
+  };
   static const String csrfCookieName = '_csrf_token';
 
   /// Placeholder until the real contact destination is decided

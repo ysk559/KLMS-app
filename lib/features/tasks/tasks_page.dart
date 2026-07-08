@@ -16,7 +16,7 @@ class TasksPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final filter = ref.watch(_filterProvider);
-    final tasks = ref.watch(tasksProvider);
+    final tasks = ref.watch(visibleTasksProvider);
     final courseMap = ref.watch(courseMapProvider);
 
     return Scaffold(

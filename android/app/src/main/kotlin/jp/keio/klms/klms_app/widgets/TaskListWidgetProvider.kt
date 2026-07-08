@@ -46,19 +46,26 @@ class TaskListWidgetProvider : HomeWidgetProvider() {
                 if (row >= rowIds.size) break
                 val task = tasks.optJSONObject(i) ?: continue
                 val title = task.optString("t")
+                // Course label, truncated so titles keep room ("心理学A" fits).
+                var course = task.optString("c", "")
+                if (course.length > 7) course = course.take(6) + "…"
                 var dueLabel = ""
                 var overdue = false
                 val dueRaw = task.optString("d", "")
                 if (dueRaw.isNotEmpty()) {
                     try {
                         val due = LocalDateTime.parse(dueRaw.substringBefore("+").substringBefore("Z"))
-                        dueLabel = "  " + due.format(dueFormat)
+                        dueLabel = due.format(dueFormat)
                         overdue = due.isBefore(now)
                     } catch (_: Exception) {
                     }
                 }
+                // Format: 締切 → コース → 課題名 (e.g. "7/12 14:50 prg 第11回課題A問題")
+                val text = listOf(dueLabel, course, title)
+                    .filter { it.isNotEmpty() }
+                    .joinToString(" ")
                 val id = rowIds[row]
-                views.setTextViewText(id, "・$title$dueLabel")
+                views.setTextViewText(id, text)
                 views.setTextColor(id, if (overdue) overdueColor else normal)
                 views.setViewVisibility(id, View.VISIBLE)
                 row++
@@ -71,9 +78,8 @@ class TaskListWidgetProvider : HomeWidgetProvider() {
                 views.setTextColor(rowIds[0], sub)
                 views.setViewVisibility(rowIds[0], View.VISIBLE)
             }
-            Timetable.launchIntent(context)?.let {
-                views.setOnClickPendingIntent(R.id.widget_root, it)
-            }
+            views.setOnClickPendingIntent(
+                R.id.widget_root, Timetable.launchIntent(context, "tasks"))
             appWidgetManager.updateAppWidget(widgetId, views)
         }
     }

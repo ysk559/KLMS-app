@@ -54,8 +54,9 @@ void main() {
       expect(decorateTaskTitle('課題1', course), '[Jexp]課題1');
     });
 
-    test('no nickname leaves title as is', () {
-      expect(decorateTaskTitle('課題1', course.copyWith(nickname: '')), '課題1');
+    test('no nickname falls back to the parsed course title', () {
+      expect(decorateTaskTitle('課題1', course.copyWith(nickname: '')),
+          '[情報工学実験第 1B]課題1');
       expect(decorateTaskTitle('課題1', null), '課題1');
     });
   });

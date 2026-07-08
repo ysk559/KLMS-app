@@ -240,7 +240,9 @@ class _CourseChip extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  course.shortLabel,
+                  // Timetable always shows the real course title (nicknames
+                  // are for task lists only).
+                  parsed.displayName,
                   maxLines: compact ? 1 : 3,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,

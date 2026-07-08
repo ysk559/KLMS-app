@@ -73,9 +73,8 @@ class TodayTimetableWidgetProvider : HomeWidgetProvider() {
                 views.setTextColor(rowIds[0], sub)
                 views.setViewVisibility(rowIds[0], View.VISIBLE)
             }
-            Timetable.launchIntent(context)?.let {
-                views.setOnClickPendingIntent(R.id.widget_root, it)
-            }
+            views.setOnClickPendingIntent(
+                R.id.widget_root, Timetable.launchIntent(context, "timetable"))
             appWidgetManager.updateAppWidget(widgetId, views)
         }
     }

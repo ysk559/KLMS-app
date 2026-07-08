@@ -44,6 +44,7 @@ class AppSettings {
     this.reminderMinutes = 0,
     this.excludeWords = const [],
     this.excludedCourseIds = const {},
+    this.excludeAlsoFromList = true,
     this.timetableFirstDay = DateTime.monday,
     this.timetableLastDay = DateTime.friday,
     this.periodsPerDay = 6,
@@ -62,6 +63,10 @@ class AppSettings {
   final int reminderMinutes;
   final List<String> excludeWords;
   final Set<int> excludedCourseIds;
+
+  /// Whether excluded words/courses also hide tasks from the task list
+  /// (and widgets), not just from reminders.
+  final bool excludeAlsoFromList;
   final int timetableFirstDay;
   final int timetableLastDay;
   final int periodsPerDay;
@@ -75,6 +80,14 @@ class AppSettings {
   Duration get reminderOffset =>
       Duration(hours: reminderHours, minutes: reminderMinutes);
 
+  /// True when a task matches the exclusion rules (word or course).
+  bool excludesTask(String title, int courseId) {
+    if (excludedCourseIds.contains(courseId)) return true;
+    final lower = title.toLowerCase();
+    return excludeWords
+        .any((w) => w.isNotEmpty && lower.contains(w.toLowerCase()));
+  }
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? localeCode,
@@ -85,6 +98,7 @@ class AppSettings {
     int? reminderMinutes,
     List<String>? excludeWords,
     Set<int>? excludedCourseIds,
+    bool? excludeAlsoFromList,
     int? timetableFirstDay,
     int? timetableLastDay,
     int? periodsPerDay,
@@ -103,6 +117,7 @@ class AppSettings {
       reminderMinutes: reminderMinutes ?? this.reminderMinutes,
       excludeWords: excludeWords ?? this.excludeWords,
       excludedCourseIds: excludedCourseIds ?? this.excludedCourseIds,
+      excludeAlsoFromList: excludeAlsoFromList ?? this.excludeAlsoFromList,
       timetableFirstDay: timetableFirstDay ?? this.timetableFirstDay,
       timetableLastDay: timetableLastDay ?? this.timetableLastDay,
       periodsPerDay: periodsPerDay ?? this.periodsPerDay,
@@ -122,6 +137,7 @@ class AppSettings {
         'reminderMinutes': reminderMinutes,
         'excludeWords': excludeWords,
         'excludedCourseIds': excludedCourseIds.toList(),
+        'excludeAlsoFromList': excludeAlsoFromList,
         'timetableFirstDay': timetableFirstDay,
         'timetableLastDay': timetableLastDay,
         'periodsPerDay': periodsPerDay,
@@ -148,6 +164,7 @@ class AppSettings {
       excludedCourseIds:
           ((json['excludedCourseIds'] as List?)?.cast<int>() ?? const [])
               .toSet(),
+      excludeAlsoFromList: json['excludeAlsoFromList'] as bool? ?? true,
       timetableFirstDay: json['timetableFirstDay'] as int? ?? DateTime.monday,
       timetableLastDay: json['timetableLastDay'] as int? ?? DateTime.friday,
       periodsPerDay: json['periodsPerDay'] as int? ?? 6,

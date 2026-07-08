@@ -18,7 +18,7 @@ class HomePage extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final auth = ref.watch(authStatusProvider);
     final sync = ref.watch(syncControllerProvider);
-    final tasks = ref.watch(tasksProvider);
+    final tasks = ref.watch(visibleTasksProvider);
     final announcements = ref.watch(announcementsProvider);
     final courseMap = ref.watch(courseMapProvider);
 
@@ -130,9 +130,15 @@ class HomePage extends ConsumerWidget {
                           ),
                           onTap: () {
                             if (a.message != null && a.message!.isNotEmpty) {
+                              final course = a.courseId != null
+                                  ? courseMap[a.courseId!]
+                                  : null;
                               Navigator.of(context).push(MaterialPageRoute(
                                   builder: (_) => HtmlContentPage(
-                                      title: a.title, html: a.message!)));
+                                      title: course?.parsed.displayName ??
+                                          l10n.announcements,
+                                      heading: a.title,
+                                      html: a.message!)));
                             } else if (a.url != null) {
                               Navigator.of(context).push(MaterialPageRoute(
                                   builder: (_) => LmsWebViewPage(

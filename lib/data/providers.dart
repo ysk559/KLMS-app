@@ -72,6 +72,17 @@ final tasksProvider = FutureProvider<List<TaskItem>>((ref) {
   return ref.watch(taskRepositoryProvider).getAll();
 });
 
+/// Tasks after applying the exclusion rules (when the user opted to hide
+/// excluded tasks from the list, which is the default).
+final visibleTasksProvider = Provider<AsyncValue<List<TaskItem>>>((ref) {
+  final tasks = ref.watch(tasksProvider);
+  final settings = ref.watch(settingsProvider);
+  if (!settings.excludeAlsoFromList) return tasks;
+  return tasks.whenData((list) => list
+      .where((t) => !settings.excludesTask(t.title, t.courseId))
+      .toList());
+});
+
 final announcementsProvider = FutureProvider<List<Announcement>>((ref) {
   ref.watch(dbVersionProvider);
   return ref.watch(announcementRepositoryProvider).getRecent();

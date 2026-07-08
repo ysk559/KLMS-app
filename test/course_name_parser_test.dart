@@ -60,6 +60,21 @@ void main() {
       expect(p.displayName, '科目名X');
     });
 
+    test('parses real KLMS format with spaces and full-width separator', () {
+      final p = CourseNameParser.parse(
+          '3-12 春[月2 月3 月4]今井 倫太　情報工学実験第１Ａ [矢上 12-204]');
+      expect(p.courseNumber, '3-12');
+      expect(p.term, '春');
+      expect(p.teacher, '今井 倫太');
+      expect(p.displayName, '情報工学実験第１Ａ');
+      expect(p.room, '矢上 12-204');
+      expect(p.slots, const [
+        CourseSlot(weekday: DateTime.monday, period: 2),
+        CourseSlot(weekday: DateTime.monday, period: 3),
+        CourseSlot(weekday: DateTime.monday, period: 4),
+      ]);
+    });
+
     test('non-schedule bracket content is not treated as slots', () {
       final p = CourseNameParser.parse('集中講義［未定］特別演習');
       expect(p.hasSchedule, isFalse);

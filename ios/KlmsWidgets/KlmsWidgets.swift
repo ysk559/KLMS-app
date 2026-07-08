@@ -12,11 +12,18 @@ private let accentDark = Color(red: 0xAE / 255, green: 0xC6 / 255, blue: 0xFF / 
 
 struct TaskData: Decodable {
   let t: String
+  let c: String?
   let d: String?
 
   var due: Date? {
     guard let d = d else { return nil }
     return parseLocalIso(d)
+  }
+
+  /// Course label truncated so the task title keeps room.
+  var courseLabel: String {
+    guard let c = c, !c.isEmpty else { return "" }
+    return c.count > 7 ? String(c.prefix(6)) + "…" : c
   }
 }
 
@@ -37,6 +44,7 @@ struct TimetableEntryData: Decodable {
   let p: Int
   let n: String
   let r: String?
+  let id: Int?
 }
 
 struct TimetableData: Decodable {
@@ -191,14 +199,22 @@ struct KlmsProvider: TimelineProvider {
 struct NextClassView: View {
   let entry: KlmsEntry
 
+  private var destination: URL {
+    if let id = entry.timetable?.nextClass(from: entry.date)?.entry.id {
+      return URL(string: "klmsapp://course/\(id)?homeWidget")!
+    }
+    return URL(string: "klmsapp://timetable?homeWidget")!
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
       if let next = entry.timetable?.nextClass(from: entry.date) {
         Text(next.ongoing ? "今の授業" : "次の授業")
           .font(.caption2.bold()).highlight(true)
         Text(next.entry.n)
-          .font(.subheadline.bold())
+          .font(.headline.bold())
           .lineLimit(2)
+          .minimumScaleFactor(0.8)
         let prefix = next.dayOffset == 0
           ? "" : (next.dayOffset == 1 ? "明日 " : dayLabel(next.entry.d) + " ")
         if let t = next.time {
@@ -215,6 +231,7 @@ struct NextClassView: View {
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .widgetURL(destination)
     .widgetContainer()
   }
 }
@@ -259,6 +276,7 @@ struct TodayView: View {
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .widgetURL(URL(string: "klmsapp://timetable?homeWidget"))
     .widgetContainer()
   }
 }
@@ -327,6 +345,7 @@ struct WeekGridView: View {
           .frame(maxHeight: .infinity)
         }
       }
+      .widgetURL(URL(string: "klmsapp://timetable?homeWidget"))
       .widgetContainer()
     } else {
       Text("アプリで同期してください")
@@ -352,22 +371,31 @@ struct TasksView: View {
       if entry.tasks.isEmpty {
         Text("課題はありません").font(.caption).foregroundColor(.secondary)
       } else {
+        // Format: 締切 → コース → 課題名 (e.g. "7/12 14:50 prg 第11回課題A問題")
         ForEach(Array(entry.tasks.prefix(5).enumerated()), id: \.offset) { item in
           let task = item.element
           HStack(spacing: 4) {
-            Text("・" + task.t).font(.caption2).lineLimit(1)
-            Spacer(minLength: 2)
             if let due = task.due {
               Text(Self.dueFormatter.string(from: due))
                 .font(.caption2.monospacedDigit())
                 .foregroundColor(due < entry.date ? .red : .secondary)
             }
+            if !task.courseLabel.isEmpty {
+              Text(task.courseLabel)
+                .font(.caption2.bold())
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .layoutPriority(1)
+            }
+            Text(task.t).font(.caption2).lineLimit(1)
+            Spacer(minLength: 0)
           }
         }
       }
       Spacer(minLength: 0)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .widgetURL(URL(string: "klmsapp://tasks?homeWidget"))
     .widgetContainer()
   }
 }

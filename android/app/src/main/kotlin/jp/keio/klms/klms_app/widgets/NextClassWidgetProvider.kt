@@ -21,6 +21,10 @@ class NextClassWidgetProvider : HomeWidgetProvider() {
 
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.widget_next_class)
+            // Tapping opens the course page of the shown class.
+            val destination = if (next != null) "course/${next.entry.courseId}" else "timetable"
+            views.setOnClickPendingIntent(
+                R.id.widget_root, Timetable.launchIntent(context, destination))
             if (next == null) {
                 views.setTextViewText(R.id.next_label, context.getString(R.string.widget_next_class))
                 views.setTextViewText(R.id.next_name, context.getString(R.string.widget_no_class))
@@ -43,9 +47,6 @@ class NextClassWidgetProvider : HomeWidgetProvider() {
                     next.entry.room?.let { append("\n").append(it) }
                 }
                 views.setTextViewText(R.id.next_sub, sub)
-            }
-            Timetable.launchIntent(context)?.let {
-                views.setOnClickPendingIntent(R.id.widget_root, it)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
         }

@@ -235,6 +235,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minutesUnit => 'min';
 
   @override
+  String get minutesBeforeUnit => 'min before';
+
+  @override
+  String get excludeApplyToList => 'Also hide from the task list';
+
+  @override
+  String get excludeApplyToListDesc =>
+      'When off, exclusions only apply to reminders';
+
+  @override
+  String get close => 'Close';
+
+  @override
   String get excludeWords => 'Excluded words';
 
   @override

@@ -43,7 +43,8 @@ class AuthService {
 
   Future<bool> hasSessionCookie() async {
     final cookies = await _lmsCookies();
-    return cookies.any((c) => c.name == KlmsConstants.sessionCookieName);
+    return cookies
+        .any((c) => KlmsConstants.sessionCookieNames.contains(c.name));
   }
 
   Future<bool> isLoggedIn() async {
