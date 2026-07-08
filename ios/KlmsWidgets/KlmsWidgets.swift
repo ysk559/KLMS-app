@@ -1,0 +1,418 @@
+import SwiftUI
+import UIKit
+import WidgetKit
+
+// Data is written by the Flutter side (lib/data/widgets/widget_bridge.dart)
+// through the shared App Group container.
+private let appGroupId = "group.jp.keio.klms.klmsApp"
+private let accentLight = Color(red: 0x02 / 255, green: 0x19 / 255, blue: 0x51 / 255)
+private let accentDark = Color(red: 0xAE / 255, green: 0xC6 / 255, blue: 0xFF / 255)
+
+// MARK: - Shared models (mirror of the JSON produced by WidgetBridge)
+
+struct TaskData: Decodable {
+  let t: String
+  let d: String?
+
+  var due: Date? {
+    guard let d = d else { return nil }
+    return parseLocalIso(d)
+  }
+}
+
+struct PeriodTimeData: Decodable {
+  let s: Int
+  let e: Int
+
+  func label(_ minutes: Int) -> String {
+    String(format: "%d:%02d", minutes / 60, minutes % 60)
+  }
+
+  var startLabel: String { label(s) }
+  var endLabel: String { label(e) }
+}
+
+struct TimetableEntryData: Decodable {
+  let d: Int
+  let p: Int
+  let n: String
+  let r: String?
+}
+
+struct TimetableData: Decodable {
+  let firstDay: Int
+  let lastDay: Int
+  let periods: Int
+  let times: [PeriodTimeData]
+  let entries: [TimetableEntryData]
+
+  func entriesFor(day: Int, period: Int) -> [TimetableEntryData] {
+    entries.filter { $0.d == day && $0.p == period }
+  }
+
+  func time(of period: Int) -> PeriodTimeData? {
+    period >= 1 && period <= times.count ? times[period - 1] : nil
+  }
+
+  struct NextClass {
+    let entry: TimetableEntryData
+    let dayOffset: Int
+    let period: Int
+    let time: PeriodTimeData?
+    let ongoing: Bool
+  }
+
+  func nextClass(from now: Date) -> NextClass? {
+    let cal = Calendar.current
+    let nowMinutes = cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
+    let todayIso = isoWeekday(now)
+    for offset in 0...6 {
+      let day = ((todayIso - 1 + offset) % 7) + 1
+      for p in 1...max(periods, 1) {
+        guard let t = time(of: p) else { continue }
+        if offset == 0 && t.e <= nowMinutes { continue }
+        if let entry = entriesFor(day: day, period: p).first {
+          let ongoing = offset == 0 && nowMinutes >= t.s
+          return NextClass(entry: entry, dayOffset: offset, period: p, time: t, ongoing: ongoing)
+        }
+      }
+    }
+    return nil
+  }
+}
+
+private func isoWeekday(_ date: Date) -> Int {
+  // Calendar: 1=Sun ... 7=Sat → ISO: 1=Mon ... 7=Sun
+  let d = Calendar.current.component(.weekday, from: date)
+  return d == 1 ? 7 : d - 1
+}
+
+private let dayLabels = ["月", "火", "水", "木", "金", "土", "日"]
+
+private func dayLabel(_ isoDay: Int) -> String {
+  (1...7).contains(isoDay) ? dayLabels[isoDay - 1] : "?"
+}
+
+private func parseLocalIso(_ s: String) -> Date? {
+  let trimmed = s.split(separator: "+").first.map(String.init) ?? s
+  let formats = [
+    "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+    "yyyy-MM-dd'T'HH:mm:ss",
+  ]
+  for f in formats {
+    let df = DateFormatter()
+    df.locale = Locale(identifier: "en_US_POSIX")
+    df.dateFormat = f
+    if let date = df.date(from: trimmed) { return date }
+  }
+  return nil
+}
+
+// MARK: - Styling helpers
+
+private struct HighlightColor: ViewModifier {
+  @Environment(\.colorScheme) var scheme
+  let active: Bool
+  let inactive: Color?
+
+  @ViewBuilder
+  func body(content: Content) -> some View {
+    if active {
+      content.foregroundColor(scheme == .dark ? accentDark : accentLight)
+    } else if let color = inactive {
+      content.foregroundColor(color)
+    } else {
+      content
+    }
+  }
+}
+
+extension View {
+  /// Accent color when [active], otherwise the optional fallback color.
+  fileprivate func highlight(_ active: Bool, inactive: Color? = nil) -> some View {
+    modifier(HighlightColor(active: active, inactive: inactive))
+  }
+
+  @ViewBuilder
+  fileprivate func widgetContainer() -> some View {
+    if #available(iOS 17.0, *) {
+      containerBackground(for: .widget) { Color(UIColor.systemBackground) }
+    } else {
+      padding(4)
+    }
+  }
+}
+
+// MARK: - Timeline
+
+struct KlmsEntry: TimelineEntry {
+  let date: Date
+  let tasks: [TaskData]
+  let timetable: TimetableData?
+}
+
+struct KlmsProvider: TimelineProvider {
+  private func load(at date: Date) -> KlmsEntry {
+    let defaults = UserDefaults(suiteName: appGroupId)
+    var tasks: [TaskData] = []
+    var timetable: TimetableData? = nil
+    if let raw = defaults?.string(forKey: "widget_tasks")?.data(using: .utf8) {
+      tasks = (try? JSONDecoder().decode([TaskData].self, from: raw)) ?? []
+    }
+    if let raw = defaults?.string(forKey: "widget_timetable")?.data(using: .utf8) {
+      timetable = try? JSONDecoder().decode(TimetableData.self, from: raw)
+    }
+    return KlmsEntry(date: date, tasks: tasks, timetable: timetable)
+  }
+
+  func placeholder(in context: Context) -> KlmsEntry {
+    KlmsEntry(date: Date(), tasks: [], timetable: nil)
+  }
+
+  func getSnapshot(in context: Context, completion: @escaping (KlmsEntry) -> Void) {
+    completion(load(at: Date()))
+  }
+
+  func getTimeline(in context: Context, completion: @escaping (Timeline<KlmsEntry>) -> Void) {
+    // Re-render every 15 minutes so "next class" and the current-period
+    // highlight stay fresh even without a data push from the app.
+    var entries: [KlmsEntry] = []
+    let now = Date()
+    for i in 0..<8 {
+      entries.append(load(at: now.addingTimeInterval(Double(i) * 15 * 60)))
+    }
+    completion(Timeline(entries: entries, policy: .atEnd))
+  }
+}
+
+// MARK: - Views
+
+struct NextClassView: View {
+  let entry: KlmsEntry
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      if let next = entry.timetable?.nextClass(from: entry.date) {
+        Text(next.ongoing ? "今の授業" : "次の授業")
+          .font(.caption2.bold()).highlight(true)
+        Text(next.entry.n)
+          .font(.subheadline.bold())
+          .lineLimit(2)
+        let prefix = next.dayOffset == 0
+          ? "" : (next.dayOffset == 1 ? "明日 " : dayLabel(next.entry.d) + " ")
+        if let t = next.time {
+          Text("\(prefix)\(next.period)限 \(t.startLabel)–\(t.endLabel)")
+            .font(.caption2).foregroundColor(.secondary)
+        }
+        if let room = next.entry.r {
+          Text(room).font(.caption2).foregroundColor(.secondary).lineLimit(1)
+        }
+      } else {
+        Text("次の授業").font(.caption2.bold()).highlight(true)
+        Text("予定なし").font(.subheadline).foregroundColor(.secondary)
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .widgetContainer()
+  }
+}
+
+struct TodayView: View {
+  let entry: KlmsEntry
+
+  var body: some View {
+    let today = isoWeekday(entry.date)
+    let cal = Calendar.current
+    let nowMinutes =
+      cal.component(.hour, from: entry.date) * 60 + cal.component(.minute, from: entry.date)
+
+    VStack(alignment: .leading, spacing: 3) {
+      Text("今日の時間割(\(dayLabel(today)))")
+        .font(.caption2.bold()).highlight(true)
+      if let tt = entry.timetable {
+        let rows: [(Int, PeriodTimeData?, [TimetableEntryData])] =
+          (1...max(tt.periods, 1)).compactMap { p in
+            let list = tt.entriesFor(day: today, period: p)
+            return list.isEmpty ? nil : (p, tt.time(of: p), list)
+          }
+        if rows.isEmpty {
+          Text("今日の授業はありません").font(.caption).foregroundColor(.secondary)
+        } else {
+          ForEach(rows.prefix(6), id: \.0) { row in
+            let (p, time, list) = row
+            let ongoing = time.map { nowMinutes >= $0.s && nowMinutes <= $0.e } ?? false
+            HStack(spacing: 4) {
+              Text("\(p)限 \(time?.startLabel ?? "")")
+                .font(.caption2.monospacedDigit())
+                .highlight(ongoing, inactive: .secondary)
+              Text(list.map { $0.n + ($0.r.map { "［\($0)］" } ?? "") }.joined(separator: " / "))
+                .font(.caption2)
+                .lineLimit(1)
+            }
+          }
+        }
+      } else {
+        Text("アプリで同期してください").font(.caption).foregroundColor(.secondary)
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .widgetContainer()
+  }
+}
+
+struct WeekGridView: View {
+  let entry: KlmsEntry
+
+  var body: some View {
+    if let tt = entry.timetable {
+      let days = Array(tt.firstDay...max(tt.lastDay, tt.firstDay))
+      let today = isoWeekday(entry.date)
+      let cal = Calendar.current
+      let nowMinutes =
+        cal.component(.hour, from: entry.date) * 60 + cal.component(.minute, from: entry.date)
+
+      VStack(spacing: 2) {
+        HStack(spacing: 2) {
+          Text("").frame(width: 26)
+          ForEach(days, id: \.self) { d in
+            Text(dayLabel(d))
+              .font(.caption2.bold())
+              .frame(maxWidth: .infinity)
+              .highlight(d == today)
+          }
+        }
+        ForEach(1...max(tt.periods, 1), id: \.self) { p in
+          let ongoing = tt.time(of: p).map { nowMinutes >= $0.s && nowMinutes <= $0.e } ?? false
+          HStack(alignment: .top, spacing: 2) {
+            VStack(spacing: 0) {
+              Text("\(p)").font(.caption2.bold())
+              if let t = tt.time(of: p) {
+                Text(t.startLabel).font(.system(size: 7)).foregroundColor(.secondary)
+              }
+            }
+            .frame(width: 26)
+            .highlight(ongoing)
+            ForEach(days, id: \.self) { d in
+              let list = tt.entriesFor(day: d, period: p)
+              Group {
+                if list.isEmpty {
+                  Color.clear
+                } else {
+                  VStack(spacing: 1) {
+                    Text(list[0].n)
+                      .font(.system(size: 8, weight: .semibold))
+                      .lineLimit(2)
+                      .multilineTextAlignment(.center)
+                    if list.count >= 2 {
+                      Text(list.count == 2 ? list[1].n : "…")
+                        .font(.system(size: 8))
+                        .lineLimit(1)
+                    } else if let room = list[0].r {
+                      Text(room).font(.system(size: 7)).foregroundColor(.secondary).lineLimit(1)
+                    }
+                  }
+                  .frame(maxWidth: .infinity, maxHeight: .infinity)
+                  .background(
+                    RoundedRectangle(cornerRadius: 4)
+                      .fill(Color.primary.opacity(0.06))
+                  )
+                }
+              }
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+          }
+          .frame(maxHeight: .infinity)
+        }
+      }
+      .widgetContainer()
+    } else {
+      Text("アプリで同期してください")
+        .font(.caption).foregroundColor(.secondary)
+        .widgetContainer()
+    }
+  }
+}
+
+struct TasksView: View {
+  let entry: KlmsEntry
+
+  private static let dueFormatter: DateFormatter = {
+    let df = DateFormatter()
+    df.locale = Locale(identifier: "en_US_POSIX")
+    df.dateFormat = "M/d HH:mm"
+    return df
+  }()
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 3) {
+      Text("課題").font(.caption2.bold()).highlight(true)
+      if entry.tasks.isEmpty {
+        Text("課題はありません").font(.caption).foregroundColor(.secondary)
+      } else {
+        ForEach(Array(entry.tasks.prefix(5).enumerated()), id: \.offset) { item in
+          let task = item.element
+          HStack(spacing: 4) {
+            Text("・" + task.t).font(.caption2).lineLimit(1)
+            Spacer(minLength: 2)
+            if let due = task.due {
+              Text(Self.dueFormatter.string(from: due))
+                .font(.caption2.monospacedDigit())
+                .foregroundColor(due < entry.date ? .red : .secondary)
+            }
+          }
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .widgetContainer()
+  }
+}
+
+// MARK: - Widgets
+
+struct TimetableWidgetView: View {
+  @Environment(\.widgetFamily) var family
+  let entry: KlmsEntry
+
+  var body: some View {
+    switch family {
+    case .systemSmall: NextClassView(entry: entry)
+    case .systemMedium: TodayView(entry: entry)
+    default: WeekGridView(entry: entry)
+    }
+  }
+}
+
+struct KlmsTimetableWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "KlmsWidgets", provider: KlmsProvider()) { entry in
+      TimetableWidgetView(entry: entry)
+    }
+    .configurationDisplayName("時間割")
+    .description("次の授業(小)/今日の時間割(中)/週の時間割(大)を表示します")
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+  }
+}
+
+struct KlmsTasksWidget: Widget {
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: "KlmsTasksWidget", provider: KlmsProvider()) { entry in
+      TasksView(entry: entry)
+    }
+    .configurationDisplayName("課題一覧")
+    .description("未完了の課題と締切を表示します")
+    .supportedFamilies([.systemMedium, .systemLarge])
+  }
+}
+
+@main
+struct KlmsWidgetBundle: WidgetBundle {
+  var body: some Widget {
+    KlmsTimetableWidget()
+    KlmsTasksWidget()
+  }
+}

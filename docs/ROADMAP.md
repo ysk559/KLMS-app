@@ -35,8 +35,10 @@
 - [x] Android ウィジェット3種(次の授業 / 今日の時間割 / タスク一覧、
       ダーク対応・現在コマ強調・タップでアプリ起動)
 - [ ] Android: 全体時間割ウィジェット(グリッド描画)
-- [ ] iOS: WidgetKit 拡張(次の授業 / 今日 / 全体。App Group と
-      Xcode ターゲット追加が必要)
+- [x] iOS: WidgetKit 拡張(時間割: 小=次の授業/中=今日/大=週全体、
+      課題一覧: 中/大)。実機でのデータ共有には App Group
+      `group.jp.keio.klms.klmsApp` の有効化(Apple Developer Program加入後、
+      Signing & Capabilities で自動生成)が必要
 - [ ] Apple Watch コンプリケーション(次の授業)
 - [ ] Google Calendar 同期(課題締切の書き込み。ユーザー側で
       Google Cloud OAuth クライアント作成が必要)
