@@ -6,6 +6,7 @@ import '../repositories/announcement_repository.dart';
 import '../repositories/course_repository.dart';
 import '../repositories/task_repository.dart';
 import '../settings/app_settings.dart';
+import '../widgets/widget_bridge.dart';
 
 /// Orchestrates one full refresh: API → local DB → notifications.
 class SyncService {
@@ -105,6 +106,13 @@ class SyncService {
         l10n.deadlineNotificationBody(
             decorated, formatDateTimeShort(t.dueAt!)),
       ),
+    );
+
+    // 7. Home-screen widgets.
+    await WidgetBridge.updateFromRepos(
+      taskRepository: taskRepository,
+      courseRepository: courseRepository,
+      settings: settings,
     );
   }
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_next_class">Next class</string>
+    <string name="widget_now_class">Now</string>
+    <string name="widget_no_class">No classes</string>
+    <string name="widget_no_class_today">No classes today</string>
+    <string name="widget_today_title">Today (%1$s)</string>
+    <string name="widget_period_suffix">P</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_tasks_title">Tasks</string>
+    <string name="widget_no_tasks">No tasks</string>
+    <string name="widget_next_class_desc">Shows the next class and its room</string>
+    <string name="widget_today_desc">Shows today\'s timetable</string>
+    <string name="widget_tasks_desc">Shows upcoming assignments and deadlines</string>
+</resources>

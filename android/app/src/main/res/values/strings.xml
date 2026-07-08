@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_next_class">次の授業</string>
+    <string name="widget_now_class">今の授業</string>
+    <string name="widget_no_class">予定なし</string>
+    <string name="widget_no_class_today">今日の授業はありません</string>
+    <string name="widget_today_title">今日の時間割(%1$s)</string>
+    <string name="widget_period_suffix">限</string>
+    <string name="widget_tomorrow">明日</string>
+    <string name="widget_tasks_title">課題</string>
+    <string name="widget_no_tasks">課題はありません</string>
+    <string name="widget_next_class_desc">次の授業と教室を表示します</string>
+    <string name="widget_today_desc">今日の時間割を表示します</string>
+    <string name="widget_tasks_desc">未完了の課題と締切を表示します</string>
+</resources>

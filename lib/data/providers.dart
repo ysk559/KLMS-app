@@ -17,6 +17,7 @@ import 'repositories/course_repository.dart';
 import 'repositories/task_repository.dart';
 import 'settings/settings_controller.dart';
 import 'sync/sync_service.dart';
+import 'widgets/widget_bridge.dart';
 
 /// Overridden in main() after async initialization.
 final appDatabaseProvider = Provider<AppDatabase>(
@@ -117,8 +118,13 @@ class SyncController extends AsyncNotifier<void> {
   }
 }
 
-/// Toggles manual completion and refreshes dependent providers.
+/// Toggles manual completion and refreshes dependent providers and widgets.
 Future<void> setTaskCompleted(WidgetRef ref, int taskId, bool completed) async {
   await ref.read(taskRepositoryProvider).setUserCompleted(taskId, completed);
   ref.read(dbVersionProvider.notifier).state++;
+  await WidgetBridge.updateFromRepos(
+    taskRepository: ref.read(taskRepositoryProvider),
+    courseRepository: ref.read(courseRepositoryProvider),
+    settings: ref.read(settingsProvider),
+  );
 }

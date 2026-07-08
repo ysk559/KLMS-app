@@ -29,6 +29,31 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Home-screen widgets. -->
+        <receiver android:name="jp.keio.klms.klms_app.widgets.NextClassWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_class_info" />
+        </receiver>
+        <receiver android:name="jp.keio.klms.klms_app.widgets.TodayTimetableWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_timetable_info" />
+        </receiver>
+        <receiver android:name="jp.keio.klms.klms_app.widgets.TaskListWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/widget_task_list_info" />
+        </receiver>
         <!-- Re-registers scheduled deadline reminders after a reboot. -->
         <receiver android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
