@@ -8,9 +8,13 @@ plugins {
 android {
     namespace = "jp.keio.klms.klms_app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Several plugins (flutter_local_notifications, sqflite, ...) require a
+    // newer NDK than the Flutter default.
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
+        // flutter_local_notifications requires core library desugaring.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -41,4 +45,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
