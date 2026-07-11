@@ -54,8 +54,7 @@ class TodayTimetableWidgetProvider : HomeWidgetProvider() {
                     e.name + (e.room?.let { "［$it］" } ?: "")
                 }
                 val text = buildString {
-                    append(p)
-                    append(context.getString(R.string.widget_period_suffix))
+                    append(context.getString(R.string.widget_period_fmt, p))
                     if (time != null) append(" ").append(time.startLabel)
                     append("  ").append(names)
                 }

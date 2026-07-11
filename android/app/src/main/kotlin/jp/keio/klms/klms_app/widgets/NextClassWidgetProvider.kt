@@ -42,7 +42,7 @@ class NextClassWidgetProvider : HomeWidgetProvider() {
                 val time = next.time
                 val sub = buildString {
                     append(dayPrefix)
-                    append(next.period).append(context.getString(R.string.widget_period_suffix))
+                    append(context.getString(R.string.widget_period_fmt, next.period))
                     if (time != null) append(" ").append(time.startLabel).append("–").append(time.endLabel)
                     next.entry.room?.let { append("\n").append(it) }
                 }

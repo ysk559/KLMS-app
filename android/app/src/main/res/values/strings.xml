@@ -5,7 +5,7 @@
     <string name="widget_no_class">予定なし</string>
     <string name="widget_no_class_today">今日の授業はありません</string>
     <string name="widget_today_title">今日の時間割(%1$s)</string>
-    <string name="widget_period_suffix">限</string>
+    <string name="widget_period_fmt">%1$d限</string>
     <string name="widget_tomorrow">明日</string>
     <string name="widget_tasks_title">課題</string>
     <string name="widget_no_tasks">課題はありません</string>

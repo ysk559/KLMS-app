@@ -92,6 +92,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get filterCompleted => '完了';
 
   @override
+  String get filterHidden => '非表示';
+
+  @override
   String get markComplete => '完了にする';
 
   @override

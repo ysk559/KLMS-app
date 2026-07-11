@@ -66,6 +66,23 @@ class CanvasClient {
     return results;
   }
 
+  Future<Map<String, dynamic>> _getObject(
+    String path, {
+    Map<String, dynamic>? query,
+  }) async {
+    final headers = await _auth.authHeaders();
+    if (headers.isEmpty) throw const CanvasAuthException('No credentials');
+    final response = await _dio.get<dynamic>(
+      path,
+      queryParameters: query,
+      options: Options(headers: headers),
+    );
+    _checkAuth(response);
+    final data = response.data;
+    if (data is Map<String, dynamic>) return data;
+    throw Exception('Unexpected response shape for $path');
+  }
+
   void _checkAuth(Response response) {
     final status = response.statusCode ?? 0;
     if (status == 401 || status == 403) {
@@ -176,5 +193,29 @@ class CanvasClient {
       },
     );
     return rows.map(CourseModule.fromApi).toList();
+  }
+
+  /// A single course wiki page (fields used: `title`, `body`).
+  Future<Map<String, dynamic>> getPage(int courseId, String pageUrl) =>
+      _getObject('/courses/$courseId/pages/$pageUrl');
+
+  /// Metadata for a Canvas file: `display_name`, `content-type`, and a
+  /// pre-signed `url` that needs no auth headers to download.
+  Future<Map<String, dynamic>> getFileInfo(int fileId) =>
+      _getObject('/files/$fileId');
+
+  /// A discussion topic (fields used: `title`, `message`).
+  Future<Map<String, dynamic>> getDiscussion(int courseId, int topicId) =>
+      _getObject('/courses/$courseId/discussion_topics/$topicId');
+
+  /// Downloads raw bytes from a pre-signed / public URL (e.g. a Canvas file
+  /// download link). Intentionally uses a plain [Dio] with no auth headers:
+  /// the URL already embeds its own verifier token.
+  Future<List<int>> downloadPublicBytes(String url) async {
+    final response = await Dio().get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return response.data ?? const [];
   }
 }

@@ -18,6 +18,7 @@ import '../data/repositories/task_repository.dart';
 import '../data/settings/app_settings.dart';
 import '../data/settings/settings_controller.dart';
 import '../data/sync/sync_service.dart';
+import '../data/widgets/widget_bridge.dart';
 import '../l10n/generated/app_localizations.dart';
 
 /// Android WorkManager unique task name.
@@ -85,6 +86,40 @@ Future<bool> runBackgroundSync() async {
   } on CanvasAuthException {
     // Session expired: the user must sign in again from the UI.
     return true;
+  } finally {
+    await database.close();
+  }
+}
+
+/// Entry point invoked by the OS when the user taps the check icon on the
+/// task-list home-screen widget (Android; see TaskListWidgetProvider.kt /
+/// HomeWidgetBackgroundIntent). Runs in a headless background isolate.
+@pragma('vm:entry-point')
+Future<void> widgetInteractivityCallback(Uri? uri) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
+
+  if (uri == null || uri.host != 'complete-task') return;
+  final idSegment = uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+  final taskId = idSegment != null ? int.tryParse(idSegment) : null;
+  if (taskId == null) return;
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.reload();
+  final stored = prefs.getString(kSettingsPrefsKey);
+  final settings =
+      stored != null ? AppSettings.fromJsonString(stored) : const AppSettings();
+
+  final database = await AppDatabase.open();
+  try {
+    final taskRepository = TaskRepository(database);
+    final courseRepository = CourseRepository(database);
+    await taskRepository.setUserCompleted(taskId, true);
+    await WidgetBridge.updateFromRepos(
+      taskRepository: taskRepository,
+      courseRepository: courseRepository,
+      settings: settings,
+    );
   } finally {
     await database.close();
   }

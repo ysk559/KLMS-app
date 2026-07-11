@@ -43,6 +43,7 @@
 - [ ] Google Calendar 同期(課題締切の書き込み。ユーザー側で
       Google Cloud OAuth クライアント作成が必要)
 - [ ] iOS 26+ Liquid Glass 対応(ネイティブウィジェットのマテリアル)
+- [ ] iOS課題ウィジェットのタップ完了(iOS 17 AppIntents、App Group有効化後)
 
 ## Phase 4 — 仕上げ
 
@@ -50,3 +51,4 @@
 - [ ] 成績表示
 - [ ] ストア公開準備(アイコン、スクリーンショット、プライバシーポリシー)
 - [ ] TestFlight / Play Console 内部テスト
+- [ ] デザイン刷新パス(アプリ+ウィジェットのビジュアル一新)

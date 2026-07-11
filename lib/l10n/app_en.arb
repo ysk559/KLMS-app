@@ -30,6 +30,7 @@
   "filterAll": "All",
   "filterIncomplete": "To do",
   "filterCompleted": "Done",
+  "filterHidden": "Hidden",
   "markComplete": "Mark as done",
   "markIncomplete": "Mark as not done",
   "dueAt": "Due: {time}",
@@ -56,7 +57,7 @@
   "today": "Today",
   "noClassToday": "No classes today",
   "nextClass": "Next class",
-  "period": "P{n}",
+  "period": "Period {n}",
 
   "settings": "Settings",
   "sectionAppearance": "Appearance",

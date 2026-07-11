@@ -54,6 +54,17 @@
             <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/widget_task_list_info" />
         </receiver>
+        <!-- home_widget interactive-widget plumbing: lets the task-list
+             widget's check icon run Dart code (widgetInteractivityCallback in
+             lib/background/background_sync.dart) without opening the app. -->
+        <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+        </receiver>
+        <service android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
+            android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
         <!-- Re-registers scheduled deadline reminders after a reboot. -->
         <receiver android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

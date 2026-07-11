@@ -53,20 +53,18 @@ class _LmsWebViewPageState extends State<LmsWebViewPage> {
   }
 }
 
-/// Renders raw HTML (e.g. an announcement body) inside the app.
-/// [title] is the app-bar text (course name for announcements) and
-/// [heading] an optional headline shown above the body.
-class HtmlContentPage extends StatelessWidget {
-  const HtmlContentPage(
-      {super.key, required this.title, required this.html, this.heading});
+/// Renders raw HTML (e.g. an announcement body, a Canvas page or discussion)
+/// inside the app. [heading] is an optional headline shown above the body.
+/// This is the reusable body-only piece behind [HtmlContentPage]; use it
+/// directly when a full Scaffold/AppBar isn't wanted (e.g. ModuleItemPage).
+class HtmlContentView extends StatelessWidget {
+  const HtmlContentView({super.key, required this.html, this.heading});
 
-  final String title;
   final String html;
   final String? heading;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final headingHtml = heading != null
         ? '<h2 style="margin-top:0;font-size:1.2em;">${_escapeHtml(heading!)}</h2>'
@@ -81,14 +79,9 @@ class HtmlContentPage extends StatelessWidget {
          color: ${isDark ? '#e2e2e9' : '#1a1b21'}; }
   a { color: #4a6fd4; } img { max-width: 100%; height: auto; }
 </style></head><body>$headingHtml$html</body></html>''';
-    return Scaffold(
-      appBar: AppBar(
-          title: Text(title, overflow: TextOverflow.ellipsis),
-          backgroundColor: scheme.surface),
-      body: InAppWebView(
-        initialData: InAppWebViewInitialData(data: page),
-        initialSettings: InAppWebViewSettings(javaScriptEnabled: false),
-      ),
+    return InAppWebView(
+      initialData: InAppWebViewInitialData(data: page),
+      initialSettings: InAppWebViewSettings(javaScriptEnabled: false),
     );
   }
 
@@ -96,4 +89,27 @@ class HtmlContentPage extends StatelessWidget {
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')
       .replaceAll('>', '&gt;');
+}
+
+/// Renders raw HTML (e.g. an announcement body) inside the app.
+/// [title] is the app-bar text (course name for announcements) and
+/// [heading] an optional headline shown above the body.
+class HtmlContentPage extends StatelessWidget {
+  const HtmlContentPage(
+      {super.key, required this.title, required this.html, this.heading});
+
+  final String title;
+  final String html;
+  final String? heading;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+          title: Text(title, overflow: TextOverflow.ellipsis),
+          backgroundColor: scheme.surface),
+      body: HtmlContentView(html: html, heading: heading),
+    );
+  }
 }

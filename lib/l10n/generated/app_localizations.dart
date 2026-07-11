@@ -262,6 +262,12 @@ abstract class AppLocalizations {
   /// **'完了'**
   String get filterCompleted;
 
+  /// No description provided for @filterHidden.
+  ///
+  /// In ja, this message translates to:
+  /// **'非表示'**
+  String get filterHidden;
+
   /// No description provided for @markComplete.
   ///
   /// In ja, this message translates to:

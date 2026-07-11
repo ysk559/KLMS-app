@@ -5,7 +5,7 @@
     <string name="widget_no_class">No classes</string>
     <string name="widget_no_class_today">No classes today</string>
     <string name="widget_today_title">Today (%1$s)</string>
-    <string name="widget_period_suffix">P</string>
+    <string name="widget_period_fmt">Period %1$d</string>
     <string name="widget_tomorrow">Tomorrow</string>
     <string name="widget_tasks_title">Tasks</string>
     <string name="widget_no_tasks">No tasks</string>

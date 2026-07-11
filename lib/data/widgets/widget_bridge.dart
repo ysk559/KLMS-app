@@ -56,6 +56,7 @@ class WidgetBridge {
     final taskJson = jsonEncode([
       for (final t in visibleTasks.take(10))
         {
+          'id': t.id,
           't': t.title,
           // Course label (nickname when set) rendered separately by widgets.
           'c': coursesById[t.courseId]?.shortLabel ?? '',

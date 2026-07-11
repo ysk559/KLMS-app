@@ -30,6 +30,7 @@
   "filterAll": "Tous",
   "filterIncomplete": "À faire",
   "filterCompleted": "Terminés",
+  "filterHidden": "Masqués",
   "markComplete": "Marquer comme terminé",
   "markIncomplete": "Marquer comme non terminé",
   "dueAt": "Échéance : {time}",
@@ -56,7 +57,7 @@
   "today": "Aujourd'hui",
   "noClassToday": "Pas de cours aujourd'hui",
   "nextClass": "Prochain cours",
-  "period": "P{n}",
+  "period": "Période {n}",
 
   "settings": "Réglages",
   "sectionAppearance": "Apparence",

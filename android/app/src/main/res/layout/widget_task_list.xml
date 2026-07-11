@@ -15,9 +15,108 @@
         android:textSize="12sp"
         android:textStyle="bold" />
 
-    <TextView android:id="@+id/task_row0" style="@style/WidgetRow" />
-    <TextView android:id="@+id/task_row1" style="@style/WidgetRow" />
-    <TextView android:id="@+id/task_row2" style="@style/WidgetRow" />
-    <TextView android:id="@+id/task_row3" style="@style/WidgetRow" />
-    <TextView android:id="@+id/task_row4" style="@style/WidgetRow" />
+    <LinearLayout
+        android:id="@+id/task_row_container0"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+        <ImageView
+            android:id="@+id/task_check0"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_widget_check"
+            android:tint="@color/widgetSubText" />
+        <TextView
+            android:id="@+id/task_row0"
+            style="@style/WidgetRow"
+            android:layout_width="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row_container1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+        <ImageView
+            android:id="@+id/task_check1"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_widget_check"
+            android:tint="@color/widgetSubText" />
+        <TextView
+            android:id="@+id/task_row1"
+            style="@style/WidgetRow"
+            android:layout_width="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row_container2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+        <ImageView
+            android:id="@+id/task_check2"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_widget_check"
+            android:tint="@color/widgetSubText" />
+        <TextView
+            android:id="@+id/task_row2"
+            style="@style/WidgetRow"
+            android:layout_width="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row_container3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+        <ImageView
+            android:id="@+id/task_check3"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_widget_check"
+            android:tint="@color/widgetSubText" />
+        <TextView
+            android:id="@+id/task_row3"
+            style="@style/WidgetRow"
+            android:layout_width="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/task_row_container4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+        <ImageView
+            android:id="@+id/task_check4"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_widget_check"
+            android:tint="@color/widgetSubText" />
+        <TextView
+            android:id="@+id/task_row4"
+            style="@style/WidgetRow"
+            android:layout_width="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
 </LinearLayout>

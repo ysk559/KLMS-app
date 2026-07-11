@@ -11,6 +11,7 @@ private let accentDark = Color(red: 0xAE / 255, green: 0xC6 / 255, blue: 0xFF / 
 // MARK: - Shared models (mirror of the JSON produced by WidgetBridge)
 
 struct TaskData: Decodable {
+  let id: Int?
   let t: String
   let c: String?
   let d: String?
@@ -20,10 +21,14 @@ struct TaskData: Decodable {
     return parseLocalIso(d)
   }
 
-  /// Course label truncated so the task title keeps room.
+  /// Course label truncated so the task title keeps room, wrapped in
+  /// brackets: "[prg]", "[情報工学…]". iOS doesn't implement tap-to-complete
+  /// (see docs/ROADMAP.md — needs iOS 17 AppIntents + an active App Group),
+  /// so `id` is currently unused here beyond tolerant decoding.
   var courseLabel: String {
     guard let c = c, !c.isEmpty else { return "" }
-    return c.count > 7 ? String(c.prefix(6)) + "…" : c
+    let truncated = c.count > 7 ? String(c.prefix(6)) + "…" : c
+    return "[\(truncated)]"
   }
 }
 

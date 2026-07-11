@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants.dart';
 import '../../data/models/course.dart';
@@ -7,6 +8,7 @@ import '../../data/models/course_module.dart';
 import '../../data/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'lms_webview_page.dart';
+import 'module_item_page.dart';
 
 /// Course page mirroring the LMS layout: collapsible modules with their
 /// items underneath.
@@ -50,7 +52,8 @@ class CourseDetailPage extends ConsumerWidget {
                     title: Text(m.name),
                     initiallyExpanded: items.length <= 3,
                     children: [
-                      for (final item in m.items) _ModuleItemTile(item: item),
+                      for (final item in m.items)
+                        _ModuleItemTile(item: item, course: course),
                     ],
                   ),
               ],
@@ -77,9 +80,10 @@ class CourseDetailPage extends ConsumerWidget {
 }
 
 class _ModuleItemTile extends StatelessWidget {
-  const _ModuleItemTile({required this.item});
+  const _ModuleItemTile({required this.item, required this.course});
 
   final ModuleItem item;
+  final Course course;
 
   static const _icons = <String, IconData>{
     'File': Icons.insert_drive_file_outlined,
@@ -111,11 +115,53 @@ class _ModuleItemTile extends StatelessWidget {
       contentPadding: EdgeInsets.only(left: 16.0 + item.indent * 12, right: 16),
       leading: Icon(_icons[item.type] ?? Icons.circle_outlined, size: 20),
       title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-      onTap: item.htmlUrl != null
-          ? () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) =>
-                  LmsWebViewPage(url: item.htmlUrl!, title: item.title)))
-          : null,
+      onTap: () => _handleTap(context),
     );
+  }
+
+  void _handleTap(BuildContext context) {
+    switch (item.type) {
+      case 'ExternalUrl':
+      case 'ExternalTool':
+        // These point off-LMS: open in the user's regular browser instead of
+        // the in-app WebView.
+        if (item.htmlUrl != null) {
+          launchUrl(Uri.parse(item.htmlUrl!), mode: LaunchMode.externalApplication);
+        }
+        return;
+      case 'Assignment':
+      case 'Quiz':
+        // Submission flows need the real LMS UI.
+        _openLms(context);
+        return;
+      case 'Page':
+        if (item.pageUrl != null) {
+          _openModuleItem(context);
+        } else {
+          _openLms(context);
+        }
+        return;
+      case 'Discussion':
+      case 'File':
+        if (item.contentId != null) {
+          _openModuleItem(context);
+        } else {
+          _openLms(context);
+        }
+        return;
+      default:
+        _openLms(context);
+    }
+  }
+
+  void _openModuleItem(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ModuleItemPage(course: course, item: item)));
+  }
+
+  void _openLms(BuildContext context) {
+    if (item.htmlUrl == null) return;
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => LmsWebViewPage(url: item.htmlUrl!, title: item.title)));
   }
 }

@@ -1,5 +1,9 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,6 +31,16 @@ Future<void> main() async {
       ? AppSettings.fromJsonString(stored)
       : const AppSettings();
   await BackgroundSyncScheduler.apply(settings);
+
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    try {
+      // Enables tap-to-complete on the Android task-list widget's check
+      // icon (see lib/background/background_sync.dart).
+      await HomeWidget.registerInteractivityCallback(widgetInteractivityCallback);
+    } catch (_) {
+      // Not fatal: the widget's check icon simply won't respond.
+    }
+  }
 
   runApp(ProviderScope(
     overrides: [

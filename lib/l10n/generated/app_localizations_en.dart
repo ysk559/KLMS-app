@@ -94,6 +94,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterCompleted => 'Done';
 
   @override
+  String get filterHidden => 'Hidden';
+
+  @override
   String get markComplete => 'Mark as done';
 
   @override
@@ -176,7 +179,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String period(int n) {
-    return 'P$n';
+    return 'Period $n';
   }
 
   @override
