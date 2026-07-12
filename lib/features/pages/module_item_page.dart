@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pdfx/pdfx.dart';
 
 import '../../data/models/course.dart';
 import '../../data/models/course_module.dart';
@@ -106,15 +106,10 @@ class _ModuleItemPageState extends ConsumerState<ModuleItemPage> {
           );
         }
         if (contentType == 'application/pdf') {
-          if (Platform.isIOS) {
-            // WKWebView (used on iOS) renders PDFs natively.
-            return InAppWebView(initialUrlRequest: URLRequest(url: WebUri(url)));
-          }
-          // Android's WebView doesn't reliably render PDFs: fall back to the
-          // Canvas file preview page.
-          final previewUrl = item.htmlUrl ?? url;
-          return InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(previewUrl)));
+          // Download and render the PDF natively (Android PdfRenderer /
+          // iOS PDFKit via pdfx) — no LMS page in between.
+          final bytes = await client.downloadPublicBytes(url);
+          return _PdfViewer(bytes: Uint8List.fromList(bytes));
         }
         final fallbackUrl = item.htmlUrl ?? url;
         return InAppWebView(initialUrlRequest: URLRequest(url: WebUri(fallbackUrl)));
@@ -169,5 +164,37 @@ class _ModuleItemPageState extends ConsumerState<ModuleItemPage> {
                 )
               : _content!,
     );
+  }
+}
+
+/// Scroll/zoomable PDF rendering from raw bytes.
+class _PdfViewer extends StatefulWidget {
+  const _PdfViewer({required this.bytes});
+
+  final Uint8List bytes;
+
+  @override
+  State<_PdfViewer> createState() => _PdfViewerState();
+}
+
+class _PdfViewerState extends State<_PdfViewer> {
+  late final PdfControllerPinch _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        PdfControllerPinch(document: PdfDocument.openData(widget.bytes));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PdfViewPinch(controller: _controller);
   }
 }

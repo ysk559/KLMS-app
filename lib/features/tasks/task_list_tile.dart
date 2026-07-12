@@ -54,8 +54,27 @@ class _TaskListTileState extends ConsumerState<TaskListTile> {
     if (!mounted) return;
 
     await setTaskCompleted(ref, widget.task.id, true);
-    // The db version bump will refresh the list and remove this tile; no
-    // need to reset _busy since this widget is about to be disposed.
+    // In tabs that keep showing completed tasks (すべて/完了/非表示) this same
+    // element stays in the list, so reset the local animation state — the
+    // tile fades back in as a checked row instead of staying invisible.
+    if (mounted) {
+      setState(() {
+        _completingLocally = false;
+        _fadedOut = false;
+        _busy = false;
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TaskListTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // List elements get reused for different tasks after a refresh.
+    if (oldWidget.task.id != widget.task.id) {
+      _completingLocally = false;
+      _fadedOut = false;
+      _busy = false;
+    }
   }
 
   @override

@@ -40,6 +40,9 @@ dependencies:
   timezone: ^0.10.0
   flutter_timezone: ^3.0.1
 
+  # PDF rendering (in-app file viewer)
+  pdfx: ^2.9.2
+
   # Misc
   url_launcher: ^6.3.1
 
