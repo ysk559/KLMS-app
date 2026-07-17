@@ -22,13 +22,20 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
 4. ~~開発セッションに伝える~~ → **完了済み**。TestFlight アップロードは
    GitHub Actions の **TestFlight ワークフロー**(手動実行)として実装済み:
    - GitHub → Actions タブ → 左の「TestFlight」→「Run workflow」で実行。
-   - fastlane が App ID / ウィジェットの App ID / App Group の登録と
-     App Store Connect のアプリレコード作成(名前: KLMSアプリ)まで自動で試みる。
-     署名は Xcode クラウド署名(証明書ファイル不要)。ビルド番号は run number。
-   - **初回は失敗しやすい**(アプリ名の重複、produce の権限まわり等)。
-     失敗したら Actions のログのエラー部分を開発セッションに貼れば修正できる。
-     アプリレコードだけ手動で作る場合: App Store Connect → マイApp →「+」
-     (Bundle ID は一度ワークフローを走らせると選択肢に現れる)。
+   - 署名は Xcode クラウド署名(証明書ファイル不要、Team ID: NNU983LGZU は
+     Fastfile に記載)。Bundle ID(本体+ウィジェット)と App Groups 等の
+     capability は初回アーカイブ時に自動登録される。ビルド番号は run number。
+   - **App Store Connect のアプリレコードだけは手動で1回作成が必要**
+     (fastlane produce が API キー認証に非対応のため):
+     App Store Connect → マイApp → 「+」→ 新規App → プラットフォーム iOS、
+     名前(例: KLMSアプリ)、プライマリ言語 日本語、
+     Bundle ID `jp.keio.klms.klmsApp`(初回ワークフロー実行後に選択肢に出る)、
+     SKU 任意(例: klmsapp-001)。
+     レコードが無い間はワークフロー最後のアップロード段階で
+     「Could not find app」で失敗する(署名・ビルドの検証はできる)。
+   - App Group `group.jp.keio.klms.klmsApp` が自動登録されない場合は
+     developer.apple.com → Identifiers → App Groups で手動作成し、
+     両 App ID の App Groups capability に割り当てて再実行。
    - アップロード成功後: App Store Connect → TestFlight → 内部テスターに
      自分を追加 → iPhone に TestFlight アプリを入れてインストール。
 
