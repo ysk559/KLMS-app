@@ -19,12 +19,28 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
    - `ASC_KEY_ID`: キーのKey ID(10文字程度)
    - `ASC_KEY_P8`: .p8 ファイルの中身全体
      (`-----BEGIN PRIVATE KEY-----`〜`-----END PRIVATE KEY-----` を改行ごとそのまま)
-4. ここまで済んだら開発セッションに「Apple Developer加入済み、Secrets登録済み」と
-   伝える → CI に TestFlight 自動アップロード(fastlane)を組み込み、
-   App ID・App Group(`group.jp.keio.klms.klmsApp`)・証明書は
-   CI/fastlane 側でプロビジョニングする。
+4. ~~開発セッションに伝える~~ → **完了済み**。TestFlight アップロードは
+   GitHub Actions の **TestFlight ワークフロー**(手動実行)として実装済み:
+   - GitHub → Actions タブ → 左の「TestFlight」→「Run workflow」で実行。
+   - fastlane が App ID / ウィジェットの App ID / App Group の登録と
+     App Store Connect のアプリレコード作成(名前: KLMSアプリ)まで自動で試みる。
+     署名は Xcode クラウド署名(証明書ファイル不要)。ビルド番号は run number。
+   - **初回は失敗しやすい**(アプリ名の重複、produce の権限まわり等)。
+     失敗したら Actions のログのエラー部分を開発セッションに貼れば修正できる。
+     アプリレコードだけ手動で作る場合: App Store Connect → マイApp →「+」
+     (Bundle ID は一度ワークフローを走らせると選択肢に現れる)。
+   - アップロード成功後: App Store Connect → TestFlight → 内部テスターに
+     自分を追加 → iPhone に TestFlight アプリを入れてインストール。
 
-### 2. Google Calendar 同期を始めるとき
+### 2. Google Calendar 同期 → **クライアントID作成済み・アプリ実装済み**
+作成済みの OAuth クライアントID(公開識別子。シークレットではない):
+- Android: `476074577270-u6e0sqir46klgselaar4tkm9nkdcfmve.apps.googleusercontent.com`
+- iOS: `476074577270-moc50h7bti10rj7emjkrj3v8a5b451op.apps.googleusercontent.com`
+設定 → 同期 → Google Calendar同期 をオンにするとGoogleサインインが開き、
+未完了課題の締切が自分のカレンダーに登録される(完了/除外で自動削除)。
+以下は当時の手順(参考):
+
+<details><summary>初期設定手順(完了済み)</summary>
 1. https://console.cloud.google.com でプロジェクト作成(無料)。
 2. 「APIとサービス → ライブラリ」で **Google Calendar API を有効化**
    (有効化しないとスコープ選択画面に calendar が出てこない)。
@@ -47,6 +63,8 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
    Calendar API 書き込みを実装する。
    ※一般公開時はセンシティブスコープのため Google の審査が必要
    (テスト公開のままなら最大100ユーザーまで審査不要)。
+
+</details>
 
 ### 3. その他の小物
 - 問い合わせ先(メール/Instagram/Google Form)を決めて伝える

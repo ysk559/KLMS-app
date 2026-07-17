@@ -1,0 +1,98 @@
+# TestFlight upload lane.
+#
+# Runs on GitHub Actions (see .github/workflows/testflight.yml) using an
+# App Store Connect API key only — no local certificates: signing is done
+# by Xcode "cloud signing" (-allowProvisioningUpdates + the API key).
+#
+# Required environment:
+#   ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8   (App Store Connect API key)
+#   ASC_KEY_P8_PATH    absolute path to the same key written as a .p8 file
+#   ASC_KEY_JSON_PATH  absolute path to a fastlane api-key JSON file
+#   BUILD_NUMBER       monotonically increasing integer (e.g. GitHub run number)
+#   ASC_APP_NAME       optional; App Store Connect app name (default below)
+
+default_platform(:ios)
+
+APP_ID = "jp.keio.klms.klmsApp".freeze
+WIDGET_ID = "jp.keio.klms.klmsApp.KlmsWidgets".freeze
+GROUP_ID = "group.jp.keio.klms.klmsApp".freeze
+MARKETING_VERSION = "0.1.0".freeze
+
+platform :ios do
+  desc "Build a signed IPA and upload it to TestFlight"
+  lane :beta do
+    key_id = ENV.fetch("ASC_KEY_ID")
+    issuer_id = ENV.fetch("ASC_ISSUER_ID")
+    p8_path = ENV.fetch("ASC_KEY_P8_PATH")
+    key_json = ENV.fetch("ASC_KEY_JSON_PATH")
+    build_number = ENV.fetch("BUILD_NUMBER")
+    app_name = ENV.fetch("ASC_APP_NAME", "KLMSアプリ")
+
+    api_key = app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_content: ENV.fetch("ASC_KEY_P8"),
+    )
+
+    # --- 1. Register bundle IDs, the App Group, and the ASC app record. ---
+    # All idempotent; failures are logged but do not stop the build so that
+    # re-runs after a manual fix keep working.
+    produce_base = "bundle exec fastlane produce"
+    [
+      # Main app: developer portal + App Store Connect record.
+      "#{produce_base} create -a #{APP_ID} --app_name '#{app_name}' " \
+        "--language ja --sku klmsapp-001 --api_key_path #{key_json}",
+      # Widget extension: developer portal only.
+      "#{produce_base} create -a #{WIDGET_ID} --app_name 'KLMS Widgets' " \
+        "--skip_itc --api_key_path #{key_json}",
+      # App Group shared by app and widgets.
+      "#{produce_base} group -g #{GROUP_ID} -n 'KLMS App Group' " \
+        "--api_key_path #{key_json}",
+      "#{produce_base} enable_services -a #{APP_ID} --app-group " \
+        "--api_key_path #{key_json}",
+      "#{produce_base} enable_services -a #{WIDGET_ID} --app-group " \
+        "--api_key_path #{key_json}",
+      "#{produce_base} associate_group -a #{APP_ID} #{GROUP_ID} " \
+        "--api_key_path #{key_json}",
+      "#{produce_base} associate_group -a #{WIDGET_ID} #{GROUP_ID} " \
+        "--api_key_path #{key_json}",
+    ].each do |cmd|
+      begin
+        sh(cmd)
+      rescue => e
+        UI.important("produce step failed (usually 'already exists' — OK): #{e.message.lines.first}")
+      end
+    end
+
+    # --- 2. Compile the Flutter app (unsigned). ---
+    sh("cd ../.. && flutter build ios --release --no-codesign " \
+       "--build-number=#{build_number} --build-name=#{MARKETING_VERSION}")
+
+    # --- 3. Archive + export with Xcode cloud signing. ---
+    auth_args = "-allowProvisioningUpdates " \
+      "-authenticationKeyPath #{p8_path} " \
+      "-authenticationKeyID #{key_id} " \
+      "-authenticationKeyIssuerID #{issuer_id}"
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
+      # CFBundleVersion matches the app's (App Store requirement).
+      xcargs: "#{auth_args} CURRENT_PROJECT_VERSION=#{build_number} " \
+        "MARKETING_VERSION=#{MARKETING_VERSION}",
+      export_xcargs: auth_args,
+      export_options: {
+        signingStyle: "automatic",
+      },
+    )
+
+    # --- 4. Upload to TestFlight. ---
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+    )
+  end
+end
