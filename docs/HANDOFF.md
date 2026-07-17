@@ -12,8 +12,13 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
    - 「ユーザとアクセス → 統合 → App Store Connect API」で **チームキー** を作成
      (ロール: App Manager)。**Issuer ID / Key ID / .p8ファイル** を控える
      (.p8 は一度しかダウンロードできない)。
-3. GitHub リポジトリの Settings → Secrets and variables → Actions に登録:
-   - `ASC_ISSUER_ID` / `ASC_KEY_ID` / `ASC_KEY_P8`(.p8 の中身をそのまま貼る)
+3. GitHub リポジトリの Settings → Secrets and variables → Actions →
+   **Secrets タブ → Repository secrets**(「New repository secret」)に登録。
+   ※ Variables ではなく Secrets(機密情報のため)。Environment secrets も不要。
+   - `ASC_ISSUER_ID`: Issuer ID(UUID形式)
+   - `ASC_KEY_ID`: キーのKey ID(10文字程度)
+   - `ASC_KEY_P8`: .p8 ファイルの中身全体
+     (`-----BEGIN PRIVATE KEY-----`〜`-----END PRIVATE KEY-----` を改行ごとそのまま)
 4. ここまで済んだら開発セッションに「Apple Developer加入済み、Secrets登録済み」と
    伝える → CI に TestFlight 自動アップロード(fastlane)を組み込み、
    App ID・App Group(`group.jp.keio.klms.klmsApp`)・証明書は
