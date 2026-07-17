@@ -26,11 +26,23 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
 
 ### 2. Google Calendar 同期を始めるとき
 1. https://console.cloud.google.com でプロジェクト作成(無料)。
-2. 「APIとサービス → OAuth同意画面」: External、アプリ名等を入力、
-   スコープに `.../auth/calendar.events` を追加。テストユーザーに自分を追加。
-3. 「認証情報 → OAuthクライアントID」を **Android用**(パッケージ名
+2. 「APIとサービス → ライブラリ」で **Google Calendar API を有効化**
+   (有効化しないとスコープ選択画面に calendar が出てこない)。
+3. OAuth同意画面(新UIでは左メニュー「**Google Auth Platform**」):
+   External、アプリ名等を入力。「対象(Audience)」でテストユーザーに自分を追加。
+   スコープは「データアクセス」タブ →「スコープを追加または削除」→
+   `.../auth/calendar.events` にチェック。
+   ※テスト公開モードの間はスコープ未登録でも動作するので、見つからなければ
+   後回しで可(一般公開の審査時に必要になるだけ)。
+4. 「認証情報 → OAuthクライアントID」を **Android用**(パッケージ名
    `jp.keio.klms.klms_app` + SHA-1)と **iOS用**(バンドルID
    `jp.keio.klms.klmsApp`)の2つ作成。
+   - SHA-1 の取得(Windows): `cd KLMS-app\android` → `.\gradlew signingReport`
+     の Variant: debug の SHA1 を使う。または
+     `keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`
+     (keytool は Android Studio 同梱: `C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe`)。
+   - これはデバッグ署名用。将来リリース用キーストアを作ったら、その SHA-1 を
+     Android クライアントに追加登録すること。
 4. クライアントIDを開発セッションに伝える → `google_sign_in` +
    Calendar API 書き込みを実装する。
    ※一般公開時はセンシティブスコープのため Google の審査が必要
