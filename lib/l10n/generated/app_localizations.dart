@@ -688,6 +688,36 @@ abstract class AppLocalizations {
   /// **'iOSでは実行間隔はOSが決定します(利用状況に依存)'**
   String get iosSyncNote;
 
+  /// No description provided for @googleCalendarSync.
+  ///
+  /// In ja, this message translates to:
+  /// **'Google Calendar同期'**
+  String get googleCalendarSync;
+
+  /// No description provided for @googleCalendarSyncDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'未完了課題の締切を自分のGoogleカレンダーに登録します'**
+  String get googleCalendarSyncDesc;
+
+  /// No description provided for @googleCalendarConnected.
+  ///
+  /// In ja, this message translates to:
+  /// **'連携中: {email}'**
+  String googleCalendarConnected(String email);
+
+  /// No description provided for @googleCalendarDisconnect.
+  ///
+  /// In ja, this message translates to:
+  /// **'連携解除(カレンダーから予定も削除)'**
+  String get googleCalendarDisconnect;
+
+  /// No description provided for @googleCalendarConnectFailed.
+  ///
+  /// In ja, this message translates to:
+  /// **'Googleアカウントの連携に失敗しました'**
+  String get googleCalendarConnectFailed;
+
   /// No description provided for @sectionAccount.
   ///
   /// In ja, this message translates to:

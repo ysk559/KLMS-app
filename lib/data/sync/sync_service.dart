@@ -1,6 +1,9 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/utils/formatting.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../api/canvas_client.dart';
+import '../calendar/google_calendar_service.dart';
 import '../notifications/notification_service.dart';
 import '../repositories/announcement_repository.dart';
 import '../repositories/course_repository.dart';
@@ -16,13 +19,18 @@ class SyncService {
     required this.taskRepository,
     required this.announcementRepository,
     required this.notifications,
-  });
+    GoogleCalendarService? calendar,
+  }) : _calendar = calendar;
 
   final CanvasClient client;
   final CourseRepository courseRepository;
   final TaskRepository taskRepository;
   final AnnouncementRepository announcementRepository;
   final NotificationService notifications;
+
+  /// Lazily constructed when not injected (e.g. from the background isolate,
+  /// where there's no shared Riverpod container to source it from).
+  GoogleCalendarService? _calendar;
 
   static const _assignmentConcurrency = 4;
   static const _announcementWindow = Duration(days: 21);
@@ -114,5 +122,21 @@ class SyncService {
       courseRepository: courseRepository,
       settings: settings,
     );
+
+    // 8. Google Calendar (one-way, on-device OAuth). Guarded so any failure
+    // (offline, revoked consent, API error) never breaks the caller's sync.
+    try {
+      if (settings.googleCalendarSync) {
+        final calendar = _calendar ??= GoogleCalendarService();
+        final prefs = await SharedPreferences.getInstance();
+        final allTasks = await taskRepository.getAll();
+        await calendar.syncTasks(
+          tasks: allTasks,
+          coursesById: coursesById,
+          settings: settings,
+          prefs: prefs,
+        );
+      }
+    } catch (_) {}
   }
 }

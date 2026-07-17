@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'api/canvas_client.dart';
 import 'auth/auth_service.dart';
+import 'calendar/google_calendar_service.dart';
 import 'db/app_database.dart';
 import 'models/announcement.dart';
 import 'models/course.dart';
@@ -39,12 +40,16 @@ final taskRepositoryProvider = Provider<TaskRepository>(
 final announcementRepositoryProvider = Provider<AnnouncementRepository>(
     (ref) => AnnouncementRepository(ref.watch(appDatabaseProvider)));
 
+final googleCalendarServiceProvider =
+    Provider<GoogleCalendarService>((ref) => GoogleCalendarService());
+
 final syncServiceProvider = Provider<SyncService>((ref) => SyncService(
       client: ref.watch(canvasClientProvider),
       courseRepository: ref.watch(courseRepositoryProvider),
       taskRepository: ref.watch(taskRepositoryProvider),
       announcementRepository: ref.watch(announcementRepositoryProvider),
       notifications: ref.watch(notificationServiceProvider),
+      calendar: ref.watch(googleCalendarServiceProvider),
     ));
 
 /// Bumped after any local DB write so data providers reload.

@@ -40,8 +40,9 @@
       `group.jp.keio.klms.klmsApp` の有効化(Apple Developer Program加入後、
       Signing & Capabilities で自動生成)が必要
 - [ ] Apple Watch コンプリケーション(次の授業)
-- [ ] Google Calendar 同期(課題締切の書き込み。ユーザー側で
+- [x] Google Calendar 同期(課題締切の書き込み。ユーザー側で
       Google Cloud OAuth クライアント作成が必要)
+      (OAuthクライアント設定済み、実機検証待ち)
 - [ ] iOS 26+ Liquid Glass 対応(ネイティブウィジェットのマテリアル)
 - [ ] iOS課題ウィジェットのタップ完了(iOS 17 AppIntents、App Group有効化後)
 

@@ -51,6 +51,7 @@ class AppSettings {
     this.periodTimes = kDefaultPeriodTimes,
     this.backgroundSyncMinutes = 30,
     this.lastSyncedAt,
+    this.googleCalendarSync = false,
   });
 
   final ThemeMode themeMode;
@@ -76,6 +77,10 @@ class AppSettings {
   /// (Android: WorkManager honors this, min 15. iOS: cadence is up to the OS.)
   final int backgroundSyncMinutes;
   final DateTime? lastSyncedAt;
+
+  /// Whether incomplete task deadlines are pushed to the user's own Google
+  /// Calendar (one-way, on-device OAuth; see GoogleCalendarService).
+  final bool googleCalendarSync;
 
   Duration get reminderOffset =>
       Duration(hours: reminderHours, minutes: reminderMinutes);
@@ -105,6 +110,7 @@ class AppSettings {
     List<PeriodTime>? periodTimes,
     int? backgroundSyncMinutes,
     DateTime? lastSyncedAt,
+    bool? googleCalendarSync,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -125,6 +131,7 @@ class AppSettings {
       backgroundSyncMinutes:
           backgroundSyncMinutes ?? this.backgroundSyncMinutes,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      googleCalendarSync: googleCalendarSync ?? this.googleCalendarSync,
     );
   }
 
@@ -144,6 +151,7 @@ class AppSettings {
         'periodTimes': periodTimes.map((e) => e.toJson()).toList(),
         'backgroundSyncMinutes': backgroundSyncMinutes,
         'lastSyncedAt': lastSyncedAt?.toIso8601String(),
+        'googleCalendarSync': googleCalendarSync,
       });
 
   factory AppSettings.fromJsonString(String source) {
@@ -176,6 +184,7 @@ class AppSettings {
       lastSyncedAt: json['lastSyncedAt'] != null
           ? DateTime.tryParse(json['lastSyncedAt'] as String)
           : null,
+      googleCalendarSync: json['googleCalendarSync'] as bool? ?? false,
     );
   }
 }

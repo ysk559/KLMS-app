@@ -332,6 +332,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'On iOS the actual interval is decided by the OS (depends on usage)';
 
   @override
+  String get googleCalendarSync => 'Google Calendar sync';
+
+  @override
+  String get googleCalendarSyncDesc =>
+      'Add incomplete task deadlines to your own Google Calendar';
+
+  @override
+  String googleCalendarConnected(String email) {
+    return 'Connected: $email';
+  }
+
+  @override
+  String get googleCalendarDisconnect =>
+      'Disconnect (also removes created events)';
+
+  @override
+  String get googleCalendarConnectFailed =>
+      'Failed to connect your Google account';
+
+  @override
   String get sectionAccount => 'Account';
 
   @override

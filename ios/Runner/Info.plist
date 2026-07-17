@@ -51,7 +51,17 @@
 				<string>klmsapp</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>jp.keio.klms.klmsApp.google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.476074577270-moc50h7bti10rj7emjkrj3v8a5b451op</string>
+			</array>
+		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>476074577270-moc50h7bti10rj7emjkrj3v8a5b451op.apps.googleusercontent.com</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

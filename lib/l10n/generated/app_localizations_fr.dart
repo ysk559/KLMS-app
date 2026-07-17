@@ -331,6 +331,26 @@ class AppLocalizationsFr extends AppLocalizations {
       'Sur iOS, l\'intervalle réel est décidé par le système (selon l\'utilisation)';
 
   @override
+  String get googleCalendarSync => 'Synchronisation Google Agenda';
+
+  @override
+  String get googleCalendarSyncDesc =>
+      'Ajoute les échéances des devoirs non terminés à votre propre Google Agenda';
+
+  @override
+  String googleCalendarConnected(String email) {
+    return 'Connecté : $email';
+  }
+
+  @override
+  String get googleCalendarDisconnect =>
+      'Déconnecter (supprime aussi les événements créés)';
+
+  @override
+  String get googleCalendarConnectFailed =>
+      'Échec de la connexion à votre compte Google';
+
+  @override
   String get sectionAccount => 'Compte';
 
   @override

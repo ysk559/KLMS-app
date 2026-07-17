@@ -15,11 +15,35 @@ import 'course_nicknames_page.dart';
 import 'exclude_courses_page.dart';
 import 'timetable_settings_page.dart';
 
-class SettingsPage extends ConsumerWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  /// Email of the connected Google account, once known (best-effort — only
+  /// populated after a successful connect or a silent sign-in check;
+  /// otherwise the generic description is shown instead).
+  String? _googleEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    if (ref.read(settingsProvider).googleCalendarSync) {
+      _refreshGoogleEmail();
+    }
+  }
+
+  Future<void> _refreshGoogleEmail() async {
+    final account =
+        await ref.read(googleCalendarServiceProvider).currentOrSilent;
+    if (mounted) setState(() => _googleEmail = account?.email);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(settingsProvider);
     final auth = ref.watch(authStatusProvider);
@@ -126,6 +150,21 @@ class SettingsPage extends ConsumerWidget {
               },
             ),
           ),
+          SwitchListTile(
+            secondary: const Icon(Icons.event_available_outlined),
+            title: Text(l10n.googleCalendarSync),
+            subtitle: Text(settings.googleCalendarSync && _googleEmail != null
+                ? l10n.googleCalendarConnected(_googleEmail!)
+                : l10n.googleCalendarSyncDesc),
+            value: settings.googleCalendarSync,
+            onChanged: (v) => _toggleGoogleCalendarSync(context, ref, l10n, v),
+          ),
+          if (settings.googleCalendarSync)
+            ListTile(
+              leading: const Icon(Icons.link_off),
+              title: Text(l10n.googleCalendarDisconnect),
+              onTap: () => _disconnectGoogleCalendar(context, ref, l10n),
+            ),
           _SectionHeader(l10n.sectionCourses),
           ListTile(
             leading: const Icon(Icons.short_text),
@@ -384,6 +423,55 @@ class SettingsPage extends ConsumerWidget {
       await ref.read(authServiceProvider).logout();
       ref.read(dbVersionProvider.notifier).state++;
     }
+  }
+
+  Future<void> _toggleGoogleCalendarSync(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, bool enable) async {
+    final notifier = ref.read(settingsProvider.notifier);
+    if (!enable) {
+      notifier.update((s) => s.copyWith(googleCalendarSync: false));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final account = await ref.read(googleCalendarServiceProvider).connect();
+    if (account == null) {
+      if (context.mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.googleCalendarConnectFailed)));
+      }
+      return;
+    }
+    setState(() => _googleEmail = account.email);
+    notifier.update((s) => s.copyWith(googleCalendarSync: true));
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.googleCalendarConnected(account.email))));
+  }
+
+  Future<void> _disconnectGoogleCalendar(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(l10n.googleCalendarDisconnect),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(l10n.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(l10n.ok)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final service = ref.read(googleCalendarServiceProvider);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await service.deleteAll(prefs);
+    await service.disconnect();
+    setState(() => _googleEmail = null);
+    ref
+        .read(settingsProvider.notifier)
+        .update((s) => s.copyWith(googleCalendarSync: false));
   }
 }
 

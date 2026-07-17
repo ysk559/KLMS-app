@@ -323,6 +323,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get iosSyncNote => 'iOSでは実行間隔はOSが決定します(利用状況に依存)';
 
   @override
+  String get googleCalendarSync => 'Google Calendar同期';
+
+  @override
+  String get googleCalendarSyncDesc => '未完了課題の締切を自分のGoogleカレンダーに登録します';
+
+  @override
+  String googleCalendarConnected(String email) {
+    return '連携中: $email';
+  }
+
+  @override
+  String get googleCalendarDisconnect => '連携解除(カレンダーから予定も削除)';
+
+  @override
+  String get googleCalendarConnectFailed => 'Googleアカウントの連携に失敗しました';
+
+  @override
   String get sectionAccount => 'アカウント';
 
   @override
