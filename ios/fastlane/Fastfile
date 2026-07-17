@@ -34,28 +34,44 @@ platform :ios do
       key_content: ENV.fetch("ASC_KEY_P8"),
     )
 
+    # The produce CLI subcommands (group / associate_group) don't take an
+    # --api_key_path flag; they read the key from these env vars instead.
+    ENV["APP_STORE_CONNECT_API_KEY_PATH"] = key_json
+    ENV["PRODUCE_API_KEY_PATH"] = key_json
+
     # --- 1. Register bundle IDs, the App Group, and the ASC app record. ---
     # All idempotent; failures are logged but do not stop the build so that
     # re-runs after a manual fix keep working.
-    produce_base = "bundle exec fastlane produce"
+    begin
+      # Main app: developer portal App ID (+App Groups capability) and the
+      # App Store Connect app record.
+      create_app_online(
+        api_key: api_key,
+        app_identifier: APP_ID,
+        app_name: app_name,
+        language: "ja",
+        sku: "klmsapp-001",
+        enable_services: { app_group: "on" },
+      )
+    rescue => e
+      UI.important("create_app_online(#{APP_ID}) failed (usually 'already exists' — OK): #{e.message.lines.first}")
+    end
+    begin
+      # Widget extension: developer portal only (no ASC record).
+      create_app_online(
+        api_key: api_key,
+        app_identifier: WIDGET_ID,
+        app_name: "KLMS Widgets",
+        skip_itc: true,
+        enable_services: { app_group: "on" },
+      )
+    rescue => e
+      UI.important("create_app_online(#{WIDGET_ID}) failed (usually 'already exists' — OK): #{e.message.lines.first}")
+    end
     [
-      # Main app: developer portal + App Store Connect record.
-      "#{produce_base} create -a #{APP_ID} --app_name '#{app_name}' " \
-        "--language ja --sku klmsapp-001 --api_key_path #{key_json}",
-      # Widget extension: developer portal only.
-      "#{produce_base} create -a #{WIDGET_ID} --app_name 'KLMS Widgets' " \
-        "--skip_itc --api_key_path #{key_json}",
-      # App Group shared by app and widgets.
-      "#{produce_base} group -g #{GROUP_ID} -n 'KLMS App Group' " \
-        "--api_key_path #{key_json}",
-      "#{produce_base} enable_services -a #{APP_ID} --app-group " \
-        "--api_key_path #{key_json}",
-      "#{produce_base} enable_services -a #{WIDGET_ID} --app-group " \
-        "--api_key_path #{key_json}",
-      "#{produce_base} associate_group -a #{APP_ID} #{GROUP_ID} " \
-        "--api_key_path #{key_json}",
-      "#{produce_base} associate_group -a #{WIDGET_ID} #{GROUP_ID} " \
-        "--api_key_path #{key_json}",
+      "bundle exec fastlane produce group -g #{GROUP_ID} -n 'KLMS App Group'",
+      "bundle exec fastlane produce associate_group -a #{APP_ID} #{GROUP_ID}",
+      "bundle exec fastlane produce associate_group -a #{WIDGET_ID} #{GROUP_ID}",
     ].each do |cmd|
       begin
         sh(cmd)
@@ -64,9 +80,8 @@ platform :ios do
       end
     end
 
-    # --- 2. Compile the Flutter app (unsigned). ---
-    sh("cd ../.. && flutter build ios --release --no-codesign " \
-       "--build-number=#{build_number} --build-name=#{MARKETING_VERSION}")
+    # (The Flutter build itself runs as a separate workflow step, outside
+    # bundler — running it from here breaks Flutter's CocoaPods detection.)
 
     # --- 3. Archive + export with Xcode cloud signing. ---
     auth_args = "-allowProvisioningUpdates " \

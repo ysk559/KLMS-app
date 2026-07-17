@@ -20,6 +20,13 @@ jobs:
 
       - run: flutter pub get
 
+      # Runs outside bundler on purpose: invoking flutter from inside
+      # `bundle exec fastlane` breaks its CocoaPods detection.
+      - name: Build Flutter iOS (unsigned)
+        run: >
+          flutter build ios --release --no-codesign
+          --build-number=${{ github.run_number }} --build-name=0.1.0
+
       - name: Prepare App Store Connect API key files
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
