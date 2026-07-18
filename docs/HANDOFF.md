@@ -38,6 +38,17 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
      両 App ID の App Groups capability に割り当てて再実行。
    - アップロード成功後: App Store Connect → TestFlight → 内部テスターに
      自分を追加 → iPhone に TestFlight アプリを入れてインストール。
+   - **デバッグ経緯**(後続セッション向け):
+     1. produce系はAPIキー認証非対応 → 全削除済み
+     2. 「Signing requires a development team」→ Team ID指定で解消
+     3. 「Your team has no devices」→ Development署名がデバイス登録を要求
+     4. CODE_SIGN_IDENTITY=Apple Distribution のグローバル上書き
+        → Pods全ターゲットと「conflicting provisioning settings」で衝突
+     5. 現方針: **無署名アーカイブ(CODE_SIGNING_ALLOWED=NO)→
+        exportArchive の automatic署名+APIキーで配布署名**(検証中)
+     - それでもダメな場合の代替案: (a) iPhoneのUDIDをポータルに登録して
+       Development署名に戻す(WindowsはAppleデバイスアプリでUDID確認)、
+       (b) fastlane match(証明書用の私有リポジトリが必要)へ移行。
 
 ### 2. Google Calendar 同期 → **クライアントID作成済み・アプリ実装済み**
 作成済みの OAuth クライアントID(公開識別子。シークレットではない):
