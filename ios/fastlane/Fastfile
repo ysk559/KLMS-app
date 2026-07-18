@@ -44,7 +44,11 @@ platform :ios do
       "-authenticationKeyPath #{p8_path} " \
       "-authenticationKeyID #{key_id} " \
       "-authenticationKeyIssuerID #{issuer_id}"
+    # CODE_SIGN_IDENTITY is forced to the distribution certificate so the
+    # archive signs with an App Store profile directly — development
+    # profiles would require a registered device, which this team has none.
     build_settings = "DEVELOPMENT_TEAM=#{TEAM_ID} CODE_SIGN_STYLE=Automatic " \
+      "CODE_SIGN_IDENTITY='Apple Distribution' " \
       "CURRENT_PROJECT_VERSION=#{build_number} " \
       "MARKETING_VERSION=#{MARKETING_VERSION}"
     build_app(
