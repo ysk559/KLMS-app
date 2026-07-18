@@ -36,19 +36,20 @@ platform :ios do
       key_content: ENV.fetch("ASC_KEY_P8"),
     )
 
-    # --- Archive + export with Xcode cloud signing. ---
-    # DEVELOPMENT_TEAM is forced globally (the project file doesn't carry a
-    # team), and CURRENT_PROJECT_VERSION likewise so the widget extension's
+    # --- Archive unsigned, then sign at export with Xcode cloud signing. ---
+    # Development signing at archive time would require a registered device
+    # (this team has none), and forcing Apple Distribution globally conflicts
+    # with the Pods targets. So the archive is built with signing disabled,
+    # and -exportArchive does the actual App Store signing: cloud signing
+    # creates the distribution certificate and profiles (no device needed).
+    # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
     # CFBundleVersion matches the app's (App Store requirement).
     auth_args = "-allowProvisioningUpdates " \
       "-authenticationKeyPath #{p8_path} " \
       "-authenticationKeyID #{key_id} " \
       "-authenticationKeyIssuerID #{issuer_id}"
-    # CODE_SIGN_IDENTITY is forced to the distribution certificate so the
-    # archive signs with an App Store profile directly — development
-    # profiles would require a registered device, which this team has none.
-    build_settings = "DEVELOPMENT_TEAM=#{TEAM_ID} CODE_SIGN_STYLE=Automatic " \
-      "CODE_SIGN_IDENTITY='Apple Distribution' " \
+    build_settings = "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO " \
+      "CODE_SIGN_IDENTITY=\"\" DEVELOPMENT_TEAM=#{TEAM_ID} " \
       "CURRENT_PROJECT_VERSION=#{build_number} " \
       "MARKETING_VERSION=#{MARKETING_VERSION}"
     build_app(
@@ -57,7 +58,7 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      xcargs: "#{auth_args} #{build_settings}",
+      xcargs: build_settings,
       export_xcargs: auth_args,
       export_options: {
         signingStyle: "automatic",
