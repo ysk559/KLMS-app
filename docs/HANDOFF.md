@@ -59,9 +59,25 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
        **「Admin」ロール**で新規作成し直し、GitHub Secrets の
        ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8 を更新 → ワークフロー再実行。
        (App Store Connect → ユーザーとアクセス → 統合 → キー → ロール Admin)
-     - それでもダメな場合の代替案: (a) iPhoneのUDIDをポータルに登録して
-       Development署名に戻す(WindowsはAppleデバイスアプリでUDID確認)、
-       (b) fastlane match(証明書用の私有リポジトリが必要)へ移行。
+     7. Adminキーに更新後も「Authentication failed: bearer token not
+        properly signed」が継続。p8を厳格PEM(BEGIN/END+64文字改行)に
+        再構成しても変わらず(コミット cfdae4e)。
+     - **最有力の残り原因(未確認・ユーザー作業)**: p8とKey IDの不一致。
+       Adminキーを新規作成すると **Key ID は新しい値になる**(Issuer ID は
+       チーム共通で不変、p8 は新ファイル)。`ASC_KEY_P8` を新キーのものに
+       替えても `ASC_KEY_ID` を旧キーのIDのままにしていると、鍵とIDが
+       食い違い bearer token 署名検証が必ず失敗する。
+       → **確認**: GitHub Secrets の ASC_KEY_ID が「今の Admin キーの Key ID」に
+         なっているか。ASC_ISSUER_ID は変えなくてよい。3つが同一キー由来で
+         揃っているのが必須。
+     - コード側の署名戦略はすべて出し尽くした(手動auth / Distribution強制 /
+       無署名→export / project.pbxproj限定 / api_key委譲 / p8正規化)。
+       残るのはユーザー環境(キーの整合)側の問題。
+     - それでもダメな場合の代替案: (a) fastlane match(証明書用の私有リポジトリ+
+       APPLE_ID/パスワードかAPIキーが必要)、(b) Mac を一度だけ借りて Xcode で
+       手動アーカイブ&アップロード(初回さえ通れば以降の証明書も揃う)。
+       ※ UDID登録は「開発用インストール」向けで、TestFlight(配布署名)には
+         無関係なので不可。
 
 ### 2. Google Calendar 同期 → **クライアントID作成済み・アプリ実装済み**
 作成済みの OAuth クライアントID(公開識別子。シークレットではない):
