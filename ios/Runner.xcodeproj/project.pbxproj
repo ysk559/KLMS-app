@@ -457,6 +457,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = NNU983LGZU;
 				PRODUCT_BUNDLE_IDENTIFIER = jp.keio.klms.klmsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -637,6 +639,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = NNU983LGZU;
 				PRODUCT_BUNDLE_IDENTIFIER = jp.keio.klms.klmsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -660,6 +664,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = NNU983LGZU;
 				PRODUCT_BUNDLE_IDENTIFIER = jp.keio.klms.klmsApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
@@ -682,6 +688,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
+				DEVELOPMENT_TEAM = NNU983LGZU;
 				PRODUCT_BUNDLE_IDENTIFIER = jp.keio.klms.klmsApp.KlmsWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -706,6 +713,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
+				DEVELOPMENT_TEAM = NNU983LGZU;
 				PRODUCT_BUNDLE_IDENTIFIER = jp.keio.klms.klmsApp.KlmsWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -730,6 +738,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
+				DEVELOPMENT_TEAM = NNU983LGZU;
 				PRODUCT_BUNDLE_IDENTIFIER = jp.keio.klms.klmsApp.KlmsWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

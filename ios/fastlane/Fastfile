@@ -36,21 +36,19 @@ platform :ios do
       key_content: ENV.fetch("ASC_KEY_P8"),
     )
 
-    # --- Archive unsigned, then sign at export with Xcode cloud signing. ---
-    # Development signing at archive time would require a registered device
-    # (this team has none), and forcing Apple Distribution globally conflicts
-    # with the Pods targets. So the archive is built with signing disabled,
-    # and -exportArchive does the actual App Store signing: cloud signing
-    # creates the distribution certificate and profiles (no device needed).
+    # --- Archive + export with Xcode cloud signing. ---
+    # The Runner and KlmsWidgets targets carry DEVELOPMENT_TEAM +
+    # CODE_SIGN_STYLE=Automatic in project.pbxproj (Pods are left untouched,
+    # so no "conflicting provisioning settings"). -allowProvisioningUpdates
+    # makes Xcode create the App Store distribution certificate and profiles
+    # on the fly via the API key — no registered device needed.
     # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
     # CFBundleVersion matches the app's (App Store requirement).
     auth_args = "-allowProvisioningUpdates " \
       "-authenticationKeyPath #{p8_path} " \
       "-authenticationKeyID #{key_id} " \
       "-authenticationKeyIssuerID #{issuer_id}"
-    build_settings = "CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO " \
-      "CODE_SIGN_IDENTITY=\"\" DEVELOPMENT_TEAM=#{TEAM_ID} " \
-      "CURRENT_PROJECT_VERSION=#{build_number} " \
+    build_settings = "CURRENT_PROJECT_VERSION=#{build_number} " \
       "MARKETING_VERSION=#{MARKETING_VERSION}"
     build_app(
       workspace: "Runner.xcworkspace",
@@ -58,7 +56,7 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      xcargs: build_settings,
+      xcargs: "#{auth_args} #{build_settings}",
       export_xcargs: auth_args,
       export_options: {
         signingStyle: "automatic",
