@@ -43,10 +43,11 @@ platform :ios do
     # makes Xcode create the App Store distribution certificate and profiles
     # on the fly — no registered device needed.
     #
-    # Passing `api_key:` to build_app lets fastlane inject the correctly
-    # signed App Store Connect bearer token for cloud signing. (Manually
-    # writing -authenticationKeyPath produced "Authentication failed: bearer
-    # token ... not properly signed", so fastlane must own that part.)
+    # gym has no api_key parameter and manually writing -authenticationKeyPath
+    # produced "Authentication failed: bearer token ... not properly signed".
+    # Instead, the earlier app_store_connect_api_key call stores the key in
+    # fastlane's lane context, and gym automatically uses it for
+    # -allowProvisioningUpdates cloud signing.
     # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
     # CFBundleVersion matches the app's (App Store requirement).
     build_settings = "CURRENT_PROJECT_VERSION=#{build_number} " \
@@ -57,7 +58,6 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      api_key: api_key,
       xcargs: "-allowProvisioningUpdates #{build_settings}",
       export_options: {
         signingStyle: "automatic",
