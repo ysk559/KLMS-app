@@ -43,13 +43,17 @@ platform :ios do
     # makes Xcode create the App Store distribution certificate and profiles
     # on the fly — no registered device needed.
     #
-    # gym has no api_key parameter and manually writing -authenticationKeyPath
-    # produced "Authentication failed: bearer token ... not properly signed".
-    # Instead, the earlier app_store_connect_api_key call stores the key in
-    # fastlane's lane context, and gym automatically uses it for
-    # -allowProvisioningUpdates cloud signing.
+    # Cloud signing via the API key passed straight to xcodebuild. The .p8 is
+    # rebuilt into strict PEM by the workflow, so the bearer token xcodebuild
+    # derives from it is now correctly signed. (Dropping these args entirely
+    # gave "No Accounts"; a malformed .p8 gave "bearer token not properly
+    # signed" — this addresses both.)
     # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
     # CFBundleVersion matches the app's (App Store requirement).
+    auth_args = "-allowProvisioningUpdates " \
+      "-authenticationKeyPath #{p8_path} " \
+      "-authenticationKeyID #{key_id} " \
+      "-authenticationKeyIssuerID #{issuer_id}"
     build_settings = "CURRENT_PROJECT_VERSION=#{build_number} " \
       "MARKETING_VERSION=#{MARKETING_VERSION}"
     build_app(
@@ -58,7 +62,8 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      xcargs: "-allowProvisioningUpdates #{build_settings}",
+      xcargs: "#{auth_args} #{build_settings}",
+      export_xcargs: auth_args,
       export_options: {
         signingStyle: "automatic",
         teamID: TEAM_ID,
