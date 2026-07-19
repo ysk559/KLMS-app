@@ -44,8 +44,21 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
      3. 「Your team has no devices」→ Development署名がデバイス登録を要求
      4. CODE_SIGN_IDENTITY=Apple Distribution のグローバル上書き
         → Pods全ターゲットと「conflicting provisioning settings」で衝突
-     5. 現方針: **無署名アーカイブ(CODE_SIGNING_ALLOWED=NO)→
-        exportArchive の automatic署名+APIキーで配布署名**(検証中)
+     5. 無署名アーカイブ→exportArchive → export時に
+        「no provisioning profile mapping」で失敗
+     6. **現状の構成**(最終・コミット d65e830): 署名設定を project.pbxproj の
+        Runner と KlmsWidgets の各構成にのみ設定
+        (DEVELOPMENT_TEAM=NNU983LGZU + CODE_SIGN_STYLE=Automatic、Podsは非対象)。
+        Fastfile は allowProvisioningUpdates + APIキーでクラウド署名。
+        → **`Authentication failed: Make sure a bearer token was provided` で失敗**。
+     - **根本原因(判明)**: App Store Connect API キーのロールが「App Manager」だと、
+       Developer Portal のプロビジョニング操作(証明書・プロファイル自動生成)が
+       できない。fastlane 自身のAPI認証(アップロード)は通るが、xcodebuild の
+       cloud signing が Developer Portal アクセスで弾かれる。
+     - **推奨される次の一手(ユーザー作業)**: App Store Connect API キーを
+       **「Admin」ロール**で新規作成し直し、GitHub Secrets の
+       ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8 を更新 → ワークフロー再実行。
+       (App Store Connect → ユーザーとアクセス → 統合 → キー → ロール Admin)
      - それでもダメな場合の代替案: (a) iPhoneのUDIDをポータルに登録して
        Development署名に戻す(WindowsはAppleデバイスアプリでUDID確認)、
        (b) fastlane match(証明書用の私有リポジトリが必要)へ移行。
