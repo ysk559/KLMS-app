@@ -41,13 +41,14 @@ platform :ios do
     # CODE_SIGN_STYLE=Automatic in project.pbxproj (Pods are left untouched,
     # so no "conflicting provisioning settings"). -allowProvisioningUpdates
     # makes Xcode create the App Store distribution certificate and profiles
-    # on the fly via the API key — no registered device needed.
+    # on the fly — no registered device needed.
+    #
+    # Passing `api_key:` to build_app lets fastlane inject the correctly
+    # signed App Store Connect bearer token for cloud signing. (Manually
+    # writing -authenticationKeyPath produced "Authentication failed: bearer
+    # token ... not properly signed", so fastlane must own that part.)
     # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
     # CFBundleVersion matches the app's (App Store requirement).
-    auth_args = "-allowProvisioningUpdates " \
-      "-authenticationKeyPath #{p8_path} " \
-      "-authenticationKeyID #{key_id} " \
-      "-authenticationKeyIssuerID #{issuer_id}"
     build_settings = "CURRENT_PROJECT_VERSION=#{build_number} " \
       "MARKETING_VERSION=#{MARKETING_VERSION}"
     build_app(
@@ -56,8 +57,8 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      xcargs: "#{auth_args} #{build_settings}",
-      export_xcargs: auth_args,
+      api_key: api_key,
+      xcargs: "-allowProvisioningUpdates #{build_settings}",
       export_options: {
         signingStyle: "automatic",
         teamID: TEAM_ID,
