@@ -1,9 +1,16 @@
 name: TestFlight
 
 # Manual trigger only: Actions タブ → TestFlight → Run workflow.
-# Requires repository secrets ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8.
+# Requires repository secrets ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8 and
+# MATCH_PASSWORD (encrypts the signing files fastlane match stores in the
+# "match-storage" branch of this repo).
 on:
   workflow_dispatch:
+
+# match pushes the encrypted certs/profiles to a branch of this same repo
+# using the built-in GITHUB_TOKEN, which needs write access to contents.
+permissions:
+  contents: write
 
 jobs:
   testflight:
@@ -68,6 +75,14 @@ jobs:
           print("Wrote", name, "to:", *targets, sep="\n  ")
           EOF
 
+      # Basic-auth blob so match can clone/push the signing branch of this repo
+      # over HTTPS using the built-in GITHUB_TOKEN (base64 of "user:token").
+      - name: Configure match git auth
+        run: |
+          echo "MATCH_GIT_BASIC_AUTHORIZATION=$(printf '%s' \
+            "x-access-token:${{ github.token }}" | base64 | tr -d '\n')" \
+            >> "$GITHUB_ENV"
+
       - name: Build and upload to TestFlight
         working-directory: ios
         env:
@@ -77,6 +92,11 @@ jobs:
           ASC_KEY_P8_PATH: ${{ runner.temp }}/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
           BUILD_NUMBER: ${{ github.run_number }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
+          # fastlane match: store the encrypted certs/profiles in a dedicated
+          # branch of this repo.
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: https://github.com/${{ github.repository }}.git
+          MATCH_GIT_BRANCH: match-storage
         run: |
           bundle install
           bundle exec fastlane beta

@@ -1,25 +1,27 @@
 # TestFlight upload lane.
 #
 # Runs on GitHub Actions (see .github/workflows/testflight.yml) using an
-# App Store Connect API key. Signing is fully MANUAL and driven by fastlane:
-# it creates an "Apple Distribution" certificate (cert) and App Store
-# provisioning profiles (sigh) for both the app and the widget extension via
-# the API, then archives + exports with those. This avoids Xcode "cloud
-# signing" (-allowProvisioningUpdates), which on the runner's Xcode produced a
-# development-signed archive that could not be exported for the App Store.
+# App Store Connect API key. Signing is MANUAL, backed by fastlane match:
+# the Apple Distribution certificate and the App Store provisioning profiles
+# for the app + widget are created once and stored (encrypted with
+# MATCH_PASSWORD) in a git branch, then reused on every later run. This ends
+# the "new distribution certificate every build → hit the 2-cert cap" churn
+# that plain `cert` caused on ephemeral CI runners.
 #
-# Prerequisites done once in the Apple Developer portal:
-#   - App IDs jp.keio.klms.klmsApp and .KlmsWidgets registered (auto-created on
-#     an earlier cloud-signing run) with the App Groups capability enabled and
-#     assigned to group.jp.keio.klms.klmsApp.
-#   - The App Store Connect *app record* for jp.keio.klms.klmsApp (created
-#     manually; until it exists the upload step fails with "Could not find app"
-#     while the archive/signing still validates).
+# Prerequisites (one-time):
+#   - App IDs jp.keio.klms.klmsApp and .KlmsWidgets registered with the App
+#     Groups capability assigned to group.jp.keio.klms.klmsApp.
+#   - The App Store Connect *app record* for jp.keio.klms.klmsApp.
+#   - Before the FIRST match run, any leftover Apple Distribution certificates
+#     must be revoked so match can create and store a fresh one.
 #
 # Required environment:
 #   ASC_KEY_ID / ASC_ISSUER_ID                (App Store Connect API key)
 #   ASC_KEY_P8_PATH    absolute path to the key written as strict-PEM .p8
 #   BUILD_NUMBER       monotonically increasing integer (e.g. GitHub run number)
+#   MATCH_PASSWORD     passphrase that encrypts the stored certs/profiles
+#   MATCH_GIT_URL / MATCH_GIT_BRANCH / MATCH_GIT_BASIC_AUTHORIZATION
+#                      where and how match stores the encrypted signing files
 
 default_platform(:ios)
 
@@ -42,38 +44,27 @@ platform :ios do
       key_filepath: p8_path,
     )
 
-    # On CI, create/unlock a temporary keychain so the distribution cert's
-    # private key has somewhere to live.
+    # On CI, create/unlock a temporary keychain (match installs the cert into
+    # it via the MATCH_KEYCHAIN_* env vars setup_ci sets).
     setup_ci
 
-    # Apple Distribution certificate (development: false ⇒ distribution). The
-    # private key is generated locally and installed into the CI keychain that
-    # setup_ci created — pass its real path (macOS appends "-db" to the file)
-    # so cert installs into and verifies against the same keychain (otherwise
-    # "Keychain not found" or "Could not find the newly generated certificate
-    # installed" on GitHub Actions).
-    keychain_path = [
-      File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db"),
-      File.expand_path("~/Library/Keychains/fastlane_tmp_keychain"),
-    ].find { |p| File.exist?(p) } || lane_context[SharedValues::KEYCHAIN_PATH]
-    cert(
+    # Fetch (or, on the first run, create + store) the distribution cert and
+    # App Store profiles for both targets. App Groups is already enabled on the
+    # App IDs, so the generated profiles carry that entitlement. git storage is
+    # configured via MATCH_GIT_* / MATCH_PASSWORD env vars from the workflow.
+    match(
+      type: "appstore",
       api_key: api_key,
-      development: false,
-      keychain_path: keychain_path,
-      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "",
-      output_path: "certs",
+      app_identifier: [APP_ID, WIDGET_ID],
+      readonly: false,
     )
 
-    # App Store distribution profiles for both targets. App Groups is already
-    # enabled on the App IDs, so the profiles include that entitlement. sigh
-    # installs them where xcodebuild looks and exposes their names via ENV.
-    sigh(api_key: api_key, app_identifier: APP_ID, platform: "ios")
-    app_profile = ENV["sigh_#{APP_ID}_appstore_profile-name"] ||
-      lane_context[SharedValues::SIGH_NAME]
-    sigh(api_key: api_key, app_identifier: WIDGET_ID, platform: "ios")
-    widget_profile = ENV["sigh_#{WIDGET_ID}_appstore_profile-name"] ||
-      lane_context[SharedValues::SIGH_NAME]
-    UI.user_error!("Could not resolve provisioning profile names") \
+    mapping = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING] || {}
+    app_profile = mapping[APP_ID] ||
+      ENV["sigh_#{APP_ID}_appstore_profile-name"]
+    widget_profile = mapping[WIDGET_ID] ||
+      ENV["sigh_#{WIDGET_ID}_appstore_profile-name"]
+    UI.user_error!("match did not return provisioning profile names") \
       if app_profile.nil? || widget_profile.nil?
 
     # Switch the two app targets (not Pods) to manual signing with those
