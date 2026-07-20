@@ -109,6 +109,15 @@ class _ModuleItemPageState extends ConsumerState<ModuleItemPage> {
           // Download and render the PDF natively (Android PdfRenderer /
           // iOS PDFKit via pdfx) — no LMS page in between.
           final bytes = await client.downloadPublicBytes(url);
+          // Guard against getting an HTML login/preview page instead of the
+          // PDF (would otherwise crash pdfx with "Invalid PDF format"): a real
+          // PDF starts with the "%PDF" magic bytes. Fall back to the WebView.
+          final isPdf = bytes.length >= 4 &&
+              bytes[0] == 0x25 &&
+              bytes[1] == 0x50 &&
+              bytes[2] == 0x44 &&
+              bytes[3] == 0x46;
+          if (!isPdf) return _fallbackWebView();
           return _PdfViewer(bytes: Uint8List.fromList(bytes));
         }
         final fallbackUrl = item.htmlUrl ?? url;

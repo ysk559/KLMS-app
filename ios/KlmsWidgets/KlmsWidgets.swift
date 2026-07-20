@@ -289,6 +289,8 @@ struct TodayView: View {
 struct WeekGridView: View {
   let entry: KlmsEntry
 
+  private let timeColumnWidth: CGFloat = 24
+
   var body: some View {
     if let tt = entry.timetable {
       let days = Array(tt.firstDay...max(tt.lastDay, tt.firstDay))
@@ -297,65 +299,107 @@ struct WeekGridView: View {
       let nowMinutes =
         cal.component(.hour, from: entry.date) * 60 + cal.component(.minute, from: entry.date)
 
-      VStack(spacing: 2) {
-        HStack(spacing: 2) {
-          Text("").frame(width: 26)
+      grid(tt: tt, days: days, today: today, nowMinutes: nowMinutes)
+        .widgetURL(URL(string: "klmsapp://timetable?homeWidget"))
+        .widgetContainer()
+    } else {
+      Text("アプリで同期してください")
+        .font(.caption).foregroundColor(.secondary)
+        .widgetContainer()
+    }
+  }
+
+  /// One timetable cell: the course(s) for a day/period, or a faint empty box
+  /// so the whole thing still reads as a grid. Always fills its column.
+  @ViewBuilder
+  private func cell(_ list: [TimetableEntryData]) -> some View {
+    VStack(spacing: 1) {
+      if !list.isEmpty {
+        Text(list[0].n)
+          .font(.system(size: 8, weight: .semibold))
+          .lineLimit(2)
+          .multilineTextAlignment(.center)
+          .minimumScaleFactor(0.6)
+        if list.count >= 2 {
+          Text(list.count == 2 ? list[1].n : "…")
+            .font(.system(size: 8))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+        } else if let room = list[0].r {
+          Text(room)
+            .font(.system(size: 7)).foregroundColor(.secondary)
+            .lineLimit(1).minimumScaleFactor(0.6)
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .padding(1)
+    .background(
+      RoundedRectangle(cornerRadius: 3)
+        .fill(Color.primary.opacity(list.isEmpty ? 0.03 : 0.08))
+    )
+  }
+
+  @ViewBuilder
+  private func timeCell(_ tt: TimetableData, _ p: Int, ongoing: Bool) -> some View {
+    VStack(spacing: 0) {
+      Text("\(p)").font(.caption2.bold())
+      if let t = tt.time(of: p) {
+        Text(t.startLabel).font(.system(size: 7)).foregroundColor(.secondary)
+      }
+    }
+    .frame(width: timeColumnWidth)
+    .highlight(ongoing)
+  }
+
+  /// Uses SwiftUI `Grid` (iOS 16+) so every column is the same width across
+  /// all rows regardless of course-name length; falls back to stacked HStacks
+  /// on iOS 14/15.
+  @ViewBuilder
+  private func grid(tt: TimetableData, days: [Int], today: Int, nowMinutes: Int)
+    -> some View
+  {
+    if #available(iOS 16.0, *) {
+      Grid(horizontalSpacing: 2, verticalSpacing: 2) {
+        GridRow {
+          Text("").frame(width: timeColumnWidth)
           ForEach(days, id: \.self) { d in
-            Text(dayLabel(d))
-              .font(.caption2.bold())
+            Text(dayLabel(d)).font(.caption2.bold()).highlight(d == today)
               .frame(maxWidth: .infinity)
-              .highlight(d == today)
           }
         }
         ForEach(1...max(tt.periods, 1), id: \.self) { p in
-          let ongoing = tt.time(of: p).map { nowMinutes >= $0.s && nowMinutes <= $0.e } ?? false
-          HStack(alignment: .top, spacing: 2) {
-            VStack(spacing: 0) {
-              Text("\(p)").font(.caption2.bold())
-              if let t = tt.time(of: p) {
-                Text(t.startLabel).font(.system(size: 7)).foregroundColor(.secondary)
-              }
-            }
-            .frame(width: 26)
-            .highlight(ongoing)
+          let ongoing =
+            tt.time(of: p).map { nowMinutes >= $0.s && nowMinutes <= $0.e } ?? false
+          GridRow {
+            timeCell(tt, p, ongoing: ongoing)
             ForEach(days, id: \.self) { d in
-              let list = tt.entriesFor(day: d, period: p)
-              Group {
-                if list.isEmpty {
-                  Color.clear
-                } else {
-                  VStack(spacing: 1) {
-                    Text(list[0].n)
-                      .font(.system(size: 8, weight: .semibold))
-                      .lineLimit(2)
-                      .multilineTextAlignment(.center)
-                    if list.count >= 2 {
-                      Text(list.count == 2 ? list[1].n : "…")
-                        .font(.system(size: 8))
-                        .lineLimit(1)
-                    } else if let room = list[0].r {
-                      Text(room).font(.system(size: 7)).foregroundColor(.secondary).lineLimit(1)
-                    }
-                  }
-                  .frame(maxWidth: .infinity, maxHeight: .infinity)
-                  .background(
-                    RoundedRectangle(cornerRadius: 4)
-                      .fill(Color.primary.opacity(0.06))
-                  )
-                }
-              }
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
+              cell(tt.entriesFor(day: d, period: p))
+            }
+          }
+        }
+      }
+    } else {
+      VStack(spacing: 2) {
+        HStack(spacing: 2) {
+          Text("").frame(width: timeColumnWidth)
+          ForEach(days, id: \.self) { d in
+            Text(dayLabel(d)).font(.caption2.bold())
+              .frame(maxWidth: .infinity).highlight(d == today)
+          }
+        }
+        ForEach(1...max(tt.periods, 1), id: \.self) { p in
+          let ongoing =
+            tt.time(of: p).map { nowMinutes >= $0.s && nowMinutes <= $0.e } ?? false
+          HStack(alignment: .top, spacing: 2) {
+            timeCell(tt, p, ongoing: ongoing)
+            ForEach(days, id: \.self) { d in
+              cell(tt.entriesFor(day: d, period: p))
             }
           }
           .frame(maxHeight: .infinity)
         }
       }
-      .widgetURL(URL(string: "klmsapp://timetable?homeWidget"))
-      .widgetContainer()
-    } else {
-      Text("アプリで同期してください")
-        .font(.caption).foregroundColor(.secondary)
-        .widgetContainer()
     }
   }
 }

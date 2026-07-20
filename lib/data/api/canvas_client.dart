@@ -208,13 +208,21 @@ class CanvasClient {
   Future<Map<String, dynamic>> getDiscussion(int courseId, int topicId) =>
       _getObject('/courses/$courseId/discussion_topics/$topicId');
 
-  /// Downloads raw bytes from a pre-signed / public URL (e.g. a Canvas file
-  /// download link). Intentionally uses a plain [Dio] with no auth headers:
-  /// the URL already embeds its own verifier token.
+  /// Downloads raw bytes from a Canvas file URL. Some Keio LMS file URLs still
+  /// require the session cookie (they 302 to the login page otherwise), so we
+  /// attach the same auth headers as the API and follow redirects. The cookie
+  /// is harmless if the URL redirects to a pre-signed CDN link.
   Future<List<int>> downloadPublicBytes(String url) async {
+    final headers = await _auth.authHeaders();
     final response = await Dio().get<List<int>>(
       url,
-      options: Options(responseType: ResponseType.bytes),
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: headers.isEmpty ? null : headers,
+        followRedirects: true,
+        maxRedirects: 5,
+        validateStatus: (s) => s != null && s < 500,
+      ),
     );
     return response.data ?? const [];
   }
