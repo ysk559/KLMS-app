@@ -47,10 +47,15 @@ platform :ios do
     setup_ci
 
     # Apple Distribution certificate (development: false ⇒ distribution). The
-    # private key is generated locally and installed into the CI keychain.
+    # private key is generated locally and installed into the CI keychain that
+    # setup_ci created — pass it explicitly so cert can find the cert it just
+    # imported (otherwise "Could not find the newly generated certificate
+    # installed" on GitHub Actions).
     cert(
       api_key: api_key,
       development: false,
+      keychain_path: lane_context[SharedValues::KEYCHAIN_PATH],
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "",
       output_path: "certs",
     )
 
