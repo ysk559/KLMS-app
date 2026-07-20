@@ -1,26 +1,32 @@
 # TestFlight upload lane.
 #
 # Runs on GitHub Actions (see .github/workflows/testflight.yml) using an
-# App Store Connect API key only — no local certificates: signing is done
-# by Xcode "cloud signing" (-allowProvisioningUpdates + the API key), which
-# also auto-registers the bundle IDs (app + widget) and their capabilities
-# on first run.
+# App Store Connect API key. Signing is fully MANUAL and driven by fastlane:
+# it creates an "Apple Distribution" certificate (cert) and App Store
+# provisioning profiles (sigh) for both the app and the widget extension via
+# the API, then archives + exports with those. This avoids Xcode "cloud
+# signing" (-allowProvisioningUpdates), which on the runner's Xcode produced a
+# development-signed archive that could not be exported for the App Store.
 #
-# The App Store Connect *app record* cannot be created with an API key via
-# fastlane (produce requires Apple ID login), so it is created manually once:
-# App Store Connect → マイApp → 「+」→ 新規App → Bundle ID: jp.keio.klms.klmsApp.
-# Until it exists, the upload step fails with "Could not find app" — the
-# archive/signing part still validates.
+# Prerequisites done once in the Apple Developer portal:
+#   - App IDs jp.keio.klms.klmsApp and .KlmsWidgets registered (auto-created on
+#     an earlier cloud-signing run) with the App Groups capability enabled and
+#     assigned to group.jp.keio.klms.klmsApp.
+#   - The App Store Connect *app record* for jp.keio.klms.klmsApp (created
+#     manually; until it exists the upload step fails with "Could not find app"
+#     while the archive/signing still validates).
 #
 # Required environment:
-#   ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8   (App Store Connect API key)
-#   ASC_KEY_P8_PATH    absolute path to the same key written as a .p8 file
+#   ASC_KEY_ID / ASC_ISSUER_ID                (App Store Connect API key)
+#   ASC_KEY_P8_PATH    absolute path to the key written as strict-PEM .p8
 #   BUILD_NUMBER       monotonically increasing integer (e.g. GitHub run number)
 
 default_platform(:ios)
 
 TEAM_ID = "NNU983LGZU".freeze
 MARKETING_VERSION = "0.1.0".freeze
+APP_ID = "jp.keio.klms.klmsApp".freeze
+WIDGET_ID = "jp.keio.klms.klmsApp.KlmsWidgets".freeze
 
 platform :ios do
   desc "Build a signed IPA and upload it to TestFlight"
@@ -30,50 +36,77 @@ platform :ios do
     p8_path = ENV.fetch("ASC_KEY_P8_PATH")
     build_number = ENV.fetch("BUILD_NUMBER")
 
-    # Use the reconstructed strict-PEM file (written by the workflow) rather
-    # than the raw secret, so fastlane and xcodebuild sign with an identical,
-    # well-formed key.
     api_key = app_store_connect_api_key(
       key_id: key_id,
       issuer_id: issuer_id,
       key_filepath: p8_path,
     )
 
-    # --- Archive + export with Xcode cloud signing. ---
-    # The Runner and KlmsWidgets targets carry DEVELOPMENT_TEAM +
-    # CODE_SIGN_STYLE=Automatic in project.pbxproj (Pods are left untouched,
-    # so no "conflicting provisioning settings"). -allowProvisioningUpdates
-    # makes Xcode create the App Store distribution certificate and profiles
-    # on the fly — no registered device needed.
-    #
-    # Cloud signing via the API key passed straight to xcodebuild. The .p8 is
-    # rebuilt into strict PEM by the workflow, so the bearer token xcodebuild
-    # derives from it is now correctly signed. (Dropping these args entirely
-    # gave "No Accounts"; a malformed .p8 gave "bearer token not properly
-    # signed" — this addresses both.)
-    # CURRENT_PROJECT_VERSION is forced globally so the widget extension's
-    # CFBundleVersion matches the app's (App Store requirement).
-    auth_args = "-allowProvisioningUpdates " \
-      "-authenticationKeyPath #{p8_path} " \
-      "-authenticationKeyID #{key_id} " \
-      "-authenticationKeyIssuerID #{issuer_id}"
-    build_settings = "CURRENT_PROJECT_VERSION=#{build_number} " \
-      "MARKETING_VERSION=#{MARKETING_VERSION}"
+    # On CI, create/unlock a temporary keychain so the distribution cert's
+    # private key has somewhere to live.
+    setup_ci
+
+    # Apple Distribution certificate (development: false ⇒ distribution). The
+    # private key is generated locally and installed into the CI keychain.
+    cert(
+      api_key: api_key,
+      development: false,
+      output_path: "certs",
+    )
+
+    # App Store distribution profiles for both targets. App Groups is already
+    # enabled on the App IDs, so the profiles include that entitlement. sigh
+    # installs them where xcodebuild looks and exposes their names via ENV.
+    sigh(api_key: api_key, app_identifier: APP_ID, platform: "ios")
+    app_profile = ENV["sigh_#{APP_ID}_appstore_profile-name"] ||
+      lane_context[SharedValues::SIGH_NAME]
+    sigh(api_key: api_key, app_identifier: WIDGET_ID, platform: "ios")
+    widget_profile = ENV["sigh_#{WIDGET_ID}_appstore_profile-name"] ||
+      lane_context[SharedValues::SIGH_NAME]
+    UI.user_error!("Could not resolve provisioning profile names") \
+      if app_profile.nil? || widget_profile.nil?
+
+    # Switch the two app targets (not Pods) to manual signing with those
+    # profiles. CURRENT_PROJECT_VERSION is forced so the widget's CFBundleVersion
+    # matches the app's (App Store requirement).
+    update_code_signing_settings(
+      path: "Runner.xcodeproj",
+      use_automatic_signing: false,
+      team_id: TEAM_ID,
+      targets: ["Runner"],
+      code_sign_identity: "Apple Distribution",
+      bundle_identifier: APP_ID,
+      profile_name: app_profile,
+    )
+    update_code_signing_settings(
+      path: "Runner.xcodeproj",
+      use_automatic_signing: false,
+      team_id: TEAM_ID,
+      targets: ["KlmsWidgets"],
+      code_sign_identity: "Apple Distribution",
+      bundle_identifier: WIDGET_ID,
+      profile_name: widget_profile,
+    )
+
     build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       configuration: "Release",
       export_method: "app-store",
       output_directory: "build",
-      xcargs: "#{auth_args} #{build_settings}",
-      export_xcargs: auth_args,
+      xcargs: "CURRENT_PROJECT_VERSION=#{build_number} " \
+        "MARKETING_VERSION=#{MARKETING_VERSION}",
       export_options: {
-        signingStyle: "automatic",
+        method: "app-store",
+        signingStyle: "manual",
         teamID: TEAM_ID,
+        provisioningProfiles: {
+          APP_ID => app_profile,
+          WIDGET_ID => widget_profile,
+        },
       },
     )
 
-    # --- Upload to TestFlight. ---
     upload_to_testflight(
       api_key: api_key,
       skip_waiting_for_build_processing: true,
