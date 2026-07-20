@@ -27,23 +27,37 @@ jobs:
           flutter build ios --release --no-codesign
           --build-number=${{ github.run_number }} --build-name=0.1.0
 
-      # Rebuild the .p8 into strict PEM (BEGIN/END + 64-char lines) so
-      # xcodebuild's cloud signing accepts it even if the secret was pasted
-      # as a single line — fastlane tolerates that, xcodebuild does not.
+      # Rebuild the .p8 into strict PEM and place it where xcodebuild's cloud
+      # signing looks by default: ~/.appstoreconnect/private_keys/ with the
+      # canonical name AuthKey_<KEYID>.p8. Xcode 26 derives the JWT's key id
+      # from that filename; without it the bearer token is signed with the
+      # wrong kid and Apple rejects it ("bearer token not properly signed"),
+      # even though the same key authenticates fine via the raw API.
       - name: Prepare App Store Connect API key file
         env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           python3 - <<'EOF'
           import os, re, textwrap
+          key_id = os.environ["ASC_KEY_ID"].strip()
           raw = os.environ["ASC_KEY_P8"].strip()
           body = re.sub(r"-----[^-]+-----", "", raw)
           body = re.sub(r"\s+", "", body)
           pem = ("-----BEGIN PRIVATE KEY-----\n"
                  + "\n".join(textwrap.wrap(body, 64))
                  + "\n-----END PRIVATE KEY-----\n")
-          with open(os.path.join(os.environ["RUNNER_TEMP"], "AuthKey.p8"), "w") as f:
-              f.write(pem)
+          name = f"AuthKey_{key_id}.p8"
+          targets = [
+              os.path.join(os.environ["HOME"], ".appstoreconnect", "private_keys"),
+              os.path.join(os.environ["HOME"], "private_keys"),
+              os.environ["RUNNER_TEMP"],
+          ]
+          for d in targets:
+              os.makedirs(d, exist_ok=True)
+              with open(os.path.join(d, name), "w") as f:
+                  f.write(pem)
+          print("Wrote", name, "to:", *targets, sep="\n  ")
           EOF
 
       - name: Build and upload to TestFlight
@@ -52,7 +66,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-          ASC_KEY_P8_PATH: ${{ runner.temp }}/AuthKey.p8
+          ASC_KEY_P8_PATH: ${{ runner.temp }}/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
           BUILD_NUMBER: ${{ github.run_number }}
           FASTLANE_SKIP_UPDATE_CHECK: "1"
         run: |
