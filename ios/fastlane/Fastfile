@@ -48,13 +48,18 @@ platform :ios do
 
     # Apple Distribution certificate (development: false ⇒ distribution). The
     # private key is generated locally and installed into the CI keychain that
-    # setup_ci created — pass it explicitly so cert can find the cert it just
-    # imported (otherwise "Could not find the newly generated certificate
+    # setup_ci created — pass its real path (macOS appends "-db" to the file)
+    # so cert installs into and verifies against the same keychain (otherwise
+    # "Keychain not found" or "Could not find the newly generated certificate
     # installed" on GitHub Actions).
+    keychain_path = [
+      File.expand_path("~/Library/Keychains/fastlane_tmp_keychain-db"),
+      File.expand_path("~/Library/Keychains/fastlane_tmp_keychain"),
+    ].find { |p| File.exist?(p) } || lane_context[SharedValues::KEYCHAIN_PATH]
     cert(
       api_key: api_key,
       development: false,
-      keychain_path: lane_context[SharedValues::KEYCHAIN_PATH],
+      keychain_path: keychain_path,
       keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || "",
       output_path: "certs",
     )
