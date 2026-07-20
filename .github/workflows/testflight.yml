@@ -7,30 +7,18 @@ on:
 
 jobs:
   testflight:
-    # macos-15 ships Xcode 16.x. macos-latest currently defaults to Xcode 26.x,
-    # whose API-key "cloud signing" rejects its own bearer token ("bearer token
-    # not properly signed") even with a valid key that the ASC API accepts.
-    runs-on: macos-15
+    # macos-latest ships Xcode 26.x, whose iOS 26 SDK App Store Connect now
+    # requires for uploads. The Xcode-26 "cloud signing" bearer-token bug does
+    # NOT apply here because signing is fully manual (cert + sigh + pre-created
+    # profiles) — xcodebuild never contacts the Developer portal during the
+    # archive/export, so no bearer token is minted.
+    runs-on: macos-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
-      # Pin to the newest stable Xcode 16 and export DEVELOPER_DIR so every
-      # later step (including fastlane/gym) uses it — xcode-select alone is not
-      # always honored by gym.
-      - name: Select a stable Xcode
-        run: |
-          echo "Available Xcodes:"; ls -d /Applications/Xcode*.app || true
-          picked=""
-          for v in $(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V -r) \
-                   $(ls -d /Applications/Xcode_15*.app 2>/dev/null | sort -V -r); do
-            if [ -d "$v" ]; then picked="$v"; break; fi
-          done
-          if [ -z "$picked" ]; then picked="/Applications/Xcode.app"; fi
-          sudo xcode-select -s "$picked/Contents/Developer"
-          echo "DEVELOPER_DIR=$picked/Contents/Developer" >> "$GITHUB_ENV"
-          echo "Selected: $picked"
-          xcodebuild -version
+      - name: Show selected Xcode
+        run: xcodebuild -version
 
       - uses: subosito/flutter-action@v2
         with:
