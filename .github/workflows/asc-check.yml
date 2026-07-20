@@ -1,0 +1,62 @@
+name: ASC Key Check
+
+# App Store Connect API キー(ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8)が
+# 「同じ1つのキー由来で整合しているか」だけを高速検証する。
+# macOS 不要・ubuntu で約30秒。署名した JWT で ASC API を直接叩き、
+# 200 なら 3 Secret は整合、401 なら p8 と Key ID の不一致(または失効)。
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          python3 -m pip install --quiet pyjwt cryptography requests
+          python3 - <<'EOF'
+          import os, re, time, sys, textwrap
+          import jwt, requests
+
+          key_id = os.environ["ASC_KEY_ID"].strip()
+          issuer_id = os.environ["ASC_ISSUER_ID"].strip()
+          raw = os.environ["ASC_KEY_P8"].strip()
+
+          print(f"Key ID length: {len(key_id)}  (expected 10)")
+          print(f"Issuer ID: {issuer_id[:8]}...  (expected UUID)")
+
+          # Rebuild the p8 into strict PEM regardless of how it was pasted.
+          body = re.sub(r"-----[^-]+-----", "", raw)
+          body = re.sub(r"\s+", "", body)
+          pem = ("-----BEGIN PRIVATE KEY-----\n"
+                 + "\n".join(textwrap.wrap(body, 64))
+                 + "\n-----END PRIVATE KEY-----\n")
+
+          now = int(time.time())
+          token = jwt.encode(
+              {"iss": issuer_id, "iat": now, "exp": now + 20 * 60,
+               "aud": "appstoreconnect-v1"},
+              pem,
+              algorithm="ES256",
+              headers={"kid": key_id, "typ": "JWT"},
+          )
+
+          r = requests.get(
+              "https://api.appstoreconnect.apple.com/v1/apps?limit=1",
+              headers={"Authorization": f"Bearer {token}"},
+          )
+          print(f"\nHTTP {r.status_code}")
+          if r.status_code == 200:
+              print("✅ 認証成功: 3つの Secret は同じキー由来で整合しています。")
+              print("   → 署名失敗の原因は xcodebuild 側。別の署名方式に切り替えます。")
+          else:
+              print("❌ 認証失敗:", r.text[:400])
+              print("\n→ p8 と Key ID が別キー、または Issuer ID 違い/キー失効の可能性。")
+              print("  App Store Connect → ユーザーとアクセス → 統合 → キー を確認。")
+              sys.exit(1)
+          EOF
