@@ -1,7 +1,9 @@
 # 次のステップと引き継ぎメモ
 
-最終更新: 2026-07-12。開発機能(Phase 1〜3+実機フィードバック2巡)は実装済みで、
-CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先はリリース準備が中心。
+最終更新: 2026-07-20。開発機能(Phase 1〜3+実機フィードバック2巡)は実装済みで、
+CI(解析/テスト/Android APK/iOSビルド)はグリーン。**TestFlight への初回
+アップロードも成功**(手動署名+Xcode 26、詳細は下記1のデバッグ経緯9)。
+ここから先はリリース準備と、署名の恒久化(fastlane match)が中心。
 
 ## あなた(オーナー)側で行う手続き
 
@@ -80,8 +82,35 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
        登録後にワークフロー再実行すれば、`-allowProvisioningUpdates` が
        Bundle ID 登録・**App Groups 有効化**・証明書・配布プロファイル生成を
        すべて自動で行う想定。
-     - それでも駄目な場合の代替: 手動署名(fastlane cert + sigh、認証は通る)に
-       切替え、App ID 2種と App Group をブラウザで登録して manual signing。
+     9. **✅ 解決(コミット d5e3ab3、2026-07-20 アップロード成功)**。最終構成:
+        - **手動署名**に切替(Fastfile): setup_ci → cert(Apple Distribution,
+          development:false, keychain_path は fastlane_tmp_keychain-db を明示) →
+          sigh(appstore, APP_ID と WIDGET_ID の2本) →
+          update_code_signing_settings で Runner/KlmsWidgets を manual+
+          profile 指定 → build_app(export_options: signingStyle manual +
+          provisioningProfiles マッピング) → upload_to_testflight。
+        - **ランナーは macos-latest (Xcode 26 / iOS 26 SDK)**。App Store Connect が
+          アップロードに iOS 26 SDK 以上を必須化したため。手動署名では
+          xcodebuild が Developer portal と通信しないので、Xcode 26 の
+          cloud signing bearer-token 不具合は該当しない。
+        - ワークフロー(testflight.yml)は p8 を厳格PEMで
+          ~/.appstoreconnect/private_keys/AuthKey_<KEYID>.p8 等に配置し
+          ASC_KEY_P8_PATH を渡すのみ(cloud signing 用の allowProvisioningUpdates
+          は撤去)。
+     - **ユーザー側の前提(完了済み)**: App ID 2種(自動登録)+ App Group
+       `group.jp.keio.klms.klmsApp` を両App IDに割当、App Store Connect の
+       アプリレコード作成、デバイス1台登録(※手動署名では本来不要だが登録済み)。
+     - **⚠️ 既知の運用課題(未解決・要 fastlane match)**: CIランナーは使い捨てで
+       秘密鍵が毎回消えるため、`cert` が実行のたびに新しい Apple Distribution
+       証明書を作る。配布証明書は**最大2つ**なので、数回で上限に達し
+       「Could not create another Distribution certificate」で失敗する。
+       都度 developer.apple.com → Certificates で古い DistributionAll を Revoke
+       すれば回避できるが、恒久対策は **fastlane match**(証明書を暗号化して
+       別の非公開リポジトリに保存・再利用)への移行。次セッションの最優先候補。
+     - **Actions分の注意**: private リポジトリだと macOS ランナーは10倍消費で
+       無料枠(月2000分)をすぐ使い切る。デバッグ中は一時的に public 化して
+       無制限にした。ビルドが落ち着いたら private に戻してよい(戻すと枠制限が
+       復活する点に注意)。
 
 ### 2. Google Calendar 同期 → **クライアントID作成済み・アプリ実装済み**
 作成済みの OAuth クライアントID(公開識別子。シークレットではない):
