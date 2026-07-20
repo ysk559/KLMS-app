@@ -59,25 +59,29 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。ここから先�
        **「Admin」ロール**で新規作成し直し、GitHub Secrets の
        ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8 を更新 → ワークフロー再実行。
        (App Store Connect → ユーザーとアクセス → 統合 → キー → ロール Admin)
-     7. Adminキーに更新後も「Authentication failed: bearer token not
-        properly signed」が継続。p8を厳格PEM(BEGIN/END+64文字改行)に
-        再構成しても変わらず(コミット cfdae4e)。
-     - **最有力の残り原因(未確認・ユーザー作業)**: p8とKey IDの不一致。
-       Adminキーを新規作成すると **Key ID は新しい値になる**(Issuer ID は
-       チーム共通で不変、p8 は新ファイル)。`ASC_KEY_P8` を新キーのものに
-       替えても `ASC_KEY_ID` を旧キーのIDのままにしていると、鍵とIDが
-       食い違い bearer token 署名検証が必ず失敗する。
-       → **確認**: GitHub Secrets の ASC_KEY_ID が「今の Admin キーの Key ID」に
-         なっているか。ASC_ISSUER_ID は変えなくてよい。3つが同一キー由来で
-         揃っているのが必須。
-     - コード側の署名戦略はすべて出し尽くした(手動auth / Distribution強制 /
-       無署名→export / project.pbxproj限定 / api_key委譲 / p8正規化)。
-       残るのはユーザー環境(キーの整合)側の問題。
-     - それでもダメな場合の代替案: (a) fastlane match(証明書用の私有リポジトリ+
-       APPLE_ID/パスワードかAPIキーが必要)、(b) Mac を一度だけ借りて Xcode で
-       手動アーカイブ&アップロード(初回さえ通れば以降の証明書も揃う)。
-       ※ UDID登録は「開発用インストール」向けで、TestFlight(配布署名)には
-         無関係なので不可。
+     7. Adminキーに更新後も「bearer token not properly signed」が継続。
+        p8を厳格PEMに再構成、正規名(AuthKey_<KEYID>.p8)で既定パスに配置、
+        Key ID差し替えも試したが変わらず。
+     8. **原因判明・突破**: 別途 ASC Key Check ワークフロー(ubuntu, 署名JWTで
+        ASC API を直接叩く)で **HTTP 200 = 3 Secret は完全に整合・有効** と確定。
+        つまり認証情報は正常で、犯人は **Xcode のバージョン**だった。
+        `macos-latest` は現在 **Xcode 26.5** で、そのAPIキー cloud signing が
+        有効な鍵でも bearer token 署名検証に失敗する(バグ)。
+        → **`runs-on: macos-15`(Xcode 16.x)に変更して bearer token エラーが解消**
+        (コミット 93f32e4)。DEVELOPER_DIR も明示固定。
+     - **現在の残課題**: 認証は通るようになったが、アーカイブ時に
+       「No profiles ... iOS App Development provisioning profiles」で失敗。
+       = 自動署名のアーカイブが**開発用プロファイル**を要求するが、アカウントに
+       **登録デバイスが0台**のため生成できない(開発用プロファイルはデバイス必須)。
+     - **次の一手(ユーザー作業・最小)**: iPhone を1台デバイス登録する。
+       developer.apple.com → Devices → 「+」→ Platform iOS、UDID を入力。
+       UDID の取得(Macなし): iPhone で get.udid.io 等を開く / Windows の
+       iTunes でシリアル番号をクリックして UDID 表示、のいずれか。
+       登録後にワークフロー再実行すれば、`-allowProvisioningUpdates` が
+       Bundle ID 登録・**App Groups 有効化**・証明書・配布プロファイル生成を
+       すべて自動で行う想定。
+     - それでも駄目な場合の代替: 手動署名(fastlane cert + sigh、認証は通る)に
+       切替え、App ID 2種と App Group をブラウザで登録して manual signing。
 
 ### 2. Google Calendar 同期 → **クライアントID作成済み・アプリ実装済み**
 作成済みの OAuth クライアントID(公開識別子。シークレットではない):
