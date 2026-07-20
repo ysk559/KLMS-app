@@ -12,6 +12,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Xcode 26.x's API-key "cloud signing" rejects its own bearer token
+      # ("bearer token not properly signed") even with a valid key that the
+      # ASC API accepts. Pin to a stable Xcode 16 (present on the runner) for
+      # which this path is known to work. Falls back to Xcode 15, else default.
+      - name: Select a stable Xcode
+        run: |
+          echo "Available Xcodes:"; ls -d /Applications/Xcode*.app || true
+          picked=""
+          for v in /Applications/Xcode_16*.app /Applications/Xcode_15*.app; do
+            if [ -d "$v" ]; then picked="$v"; break; fi
+          done
+          if [ -n "$picked" ]; then
+            sudo xcode-select -s "$picked/Contents/Developer"
+            echo "Selected: $picked"
+          else
+            echo "No Xcode 15/16 found; using default $(xcode-select -p)"
+          fi
+          xcodebuild -version
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.32.5
