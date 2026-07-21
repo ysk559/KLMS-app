@@ -100,13 +100,21 @@ CI(解析/テスト/Android APK/iOSビルド)はグリーン。**TestFlight へ�
      - **ユーザー側の前提(完了済み)**: App ID 2種(自動登録)+ App Group
        `group.jp.keio.klms.klmsApp` を両App IDに割当、App Store Connect の
        アプリレコード作成、デバイス1台登録(※手動署名では本来不要だが登録済み)。
-     - **⚠️ 既知の運用課題(未解決・要 fastlane match)**: CIランナーは使い捨てで
-       秘密鍵が毎回消えるため、`cert` が実行のたびに新しい Apple Distribution
-       証明書を作る。配布証明書は**最大2つ**なので、数回で上限に達し
-       「Could not create another Distribution certificate」で失敗する。
-       都度 developer.apple.com → Certificates で古い DistributionAll を Revoke
-       すれば回避できるが、恒久対策は **fastlane match**(証明書を暗号化して
-       別の非公開リポジトリに保存・再利用)への移行。次セッションの最優先候補。
+     10. **✅ 証明書churn恒久解決(コミット 288ee55)**: `cert` は使い捨てCIで
+        毎回新規の Apple Distribution 証明書を作り上限(2)に達していた。
+        **fastlane match** に移行して解決:
+        - Fastfile は `match(type: "appstore", app_identifier: [APP_ID,
+          WIDGET_ID], readonly: false)` で証明書+プロファイルを取得。初回に
+          作成し暗号化して保存、以後は再利用。プロファイル名は
+          `lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING]` から。
+        - 保存先は **同リポジトリの `match-storage` ブランチ**(ユーザー選択)。
+          workflow が `permissions: contents: write` と GITHUB_TOKEN を
+          base64 の `MATCH_GIT_BASIC_AUTHORIZATION` にして push。
+          env: MATCH_PASSWORD(新規Secret)/ MATCH_GIT_URL(=このリポジトリ)/
+          MATCH_GIT_BRANCH=match-storage。
+        - **前提**: 初回 match 実行前に既存の配布証明書を全Revoke(枠を空ける)。
+        - **MATCH_PASSWORD を紛失した場合**: 配布証明書をRevoke →
+          match-storage ブランチ削除 → MATCH_PASSWORD 更新 → 再実行で再生成。
      - **Actions分の注意**: private リポジトリだと macOS ランナーは10倍消費で
        無料枠(月2000分)をすぐ使い切る。デバッグ中は一時的に public 化して
        無制限にした。ビルドが落ち着いたら private に戻してよい(戻すと枠制限が
