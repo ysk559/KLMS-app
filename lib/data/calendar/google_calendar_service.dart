@@ -21,12 +21,50 @@ import '../settings/app_settings.dart';
 class GoogleCalendarService {
   GoogleCalendarService()
       : _googleSignIn =
-            GoogleSignIn(scopes: [gcal.CalendarApi.calendarEventsScope]);
+            // Full calendar scope so we can create a dedicated calendar to
+            // keep KLMS deadlines out of the user's main calendar.
+            GoogleSignIn(scopes: [gcal.CalendarApi.calendarScope]);
 
   final GoogleSignIn _googleSignIn;
 
   /// SharedPreferences key for the persisted taskId -> Google eventId map.
   static const String _eventMapPrefsKey = 'gcal_event_map_v1';
+
+  /// SharedPreferences key for the dedicated calendar's id.
+  static const String _calendarIdPrefsKey = 'gcal_calendar_id_v1';
+
+  /// Title of the dedicated calendar KLMS deadlines are written to.
+  static const String _calendarSummary = 'KLMS 課題';
+
+  /// Returns the id of the dedicated "KLMS 課題" calendar, creating it (once)
+  /// if needed. Falls back to 'primary' if creation is not permitted.
+  Future<String> _resolveCalendarId(
+      gcal.CalendarApi api, SharedPreferences prefs) async {
+    final stored = prefs.getString(_calendarIdPrefsKey);
+    if (stored != null && stored.isNotEmpty) {
+      try {
+        await api.calendars.get(stored);
+        return stored;
+      } on gcal.DetailedApiRequestError catch (e) {
+        if (e.status != 404) return stored;
+        // Calendar was deleted on Google's side: recreate below.
+      } catch (_) {
+        return stored;
+      }
+    }
+    try {
+      final created =
+          await api.calendars.insert(gcal.Calendar(summary: _calendarSummary));
+      final id = created.id;
+      if (id != null) {
+        await prefs.setString(_calendarIdPrefsKey, id);
+        return id;
+      }
+    } catch (e) {
+      debugPrint('GoogleCalendarService: create calendar failed: $e');
+    }
+    return 'primary';
+  }
 
   /// Interactive sign-in (shows the Google account picker / consent screen).
   /// Only ever call this from user-initiated UI actions — never from a
@@ -79,6 +117,7 @@ class GoogleCalendarService {
       final client = await _googleSignIn.authenticatedClient();
       if (client == null) return;
       final api = gcal.CalendarApi(client);
+      final calendarId = await _resolveCalendarId(api, prefs);
 
       final mapping = _loadMapping(prefs);
 
@@ -106,7 +145,7 @@ class GoogleCalendarService {
         try {
           if (existingEventId != null) {
             try {
-              await api.events.patch(event, 'primary', existingEventId);
+              await api.events.patch(event, calendarId, existingEventId);
               continue;
             } on gcal.DetailedApiRequestError catch (e) {
               if (e.status != 404) rethrow;
@@ -114,7 +153,7 @@ class GoogleCalendarService {
               // recreating it.
             }
           }
-          final created = await api.events.insert(event, 'primary');
+          final created = await api.events.insert(event, calendarId);
           if (created.id != null) mapping[key] = created.id!;
         } catch (e) {
           debugPrint('GoogleCalendarService: failed to sync task $key: $e');
@@ -127,7 +166,7 @@ class GoogleCalendarService {
         final eventId = mapping[key];
         if (eventId != null) {
           try {
-            await api.events.delete('primary', eventId);
+            await api.events.delete(calendarId, eventId);
           } catch (e) {
             // Already deleted / not found / offline: ignore, drop mapping
             // anyway so we don't retry forever.
@@ -143,33 +182,41 @@ class GoogleCalendarService {
     }
   }
 
-  /// Best-effort removal of every event this app has ever created, used
-  /// when the user disconnects Google Calendar sync entirely.
+  /// Best-effort removal of everything this app created, used when the user
+  /// disconnects Google Calendar sync entirely: deletes the dedicated calendar
+  /// (which takes its events with it), falling back to per-event deletion.
   Future<void> deleteAll(SharedPreferences prefs) async {
     try {
       final account = await currentOrSilent;
-      if (account == null) {
-        await prefs.remove(_eventMapPrefsKey);
-        return;
-      }
-      final client = await _googleSignIn.authenticatedClient();
+      final client =
+          account == null ? null : await _googleSignIn.authenticatedClient();
       if (client == null) {
         await prefs.remove(_eventMapPrefsKey);
+        await prefs.remove(_calendarIdPrefsKey);
         return;
       }
       final api = gcal.CalendarApi(client);
-      final mapping = _loadMapping(prefs);
-      for (final eventId in mapping.values) {
+      final calendarId = prefs.getString(_calendarIdPrefsKey);
+      if (calendarId != null && calendarId.isNotEmpty) {
         try {
-          await api.events.delete('primary', eventId);
+          await api.calendars.delete(calendarId);
         } catch (e) {
-          debugPrint('GoogleCalendarService.deleteAll: delete failed: $e');
+          debugPrint('GoogleCalendarService.deleteAll: calendar delete: $e');
+          // Fall back to deleting the individual events we tracked.
+          final mapping = _loadMapping(prefs);
+          for (final eventId in mapping.values) {
+            try {
+              await api.events.delete(calendarId, eventId);
+            } catch (_) {}
+          }
         }
       }
       await prefs.remove(_eventMapPrefsKey);
+      await prefs.remove(_calendarIdPrefsKey);
     } catch (e) {
       debugPrint('GoogleCalendarService.deleteAll failed: $e');
       await prefs.remove(_eventMapPrefsKey);
+      await prefs.remove(_calendarIdPrefsKey);
     }
   }
 

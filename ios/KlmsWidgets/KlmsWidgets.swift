@@ -309,26 +309,39 @@ struct WeekGridView: View {
     }
   }
 
-  /// One timetable cell: the course(s) for a day/period, or a faint empty box
-  /// so the whole thing still reads as a grid. Always fills its column.
+  private func courseText(_ s: String, lines: Int = 2) -> some View {
+    Text(s)
+      .font(.system(size: 8, weight: .semibold))
+      .lineLimit(lines)
+      .multilineTextAlignment(.center)
+      .minimumScaleFactor(0.6)
+      .truncationMode(.tail)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
+  /// One timetable cell. Empty → a faint box so the grid still reads as a
+  /// table. One class → name (+ room). Two classes → the cell is split into
+  /// top/bottom halves, one class each. Three or more → the second half shows
+  /// "…". Long names are truncated with an ellipsis.
   @ViewBuilder
   private func cell(_ list: [TimetableEntryData]) -> some View {
-    VStack(spacing: 1) {
-      if !list.isEmpty {
-        Text(list[0].n)
-          .font(.system(size: 8, weight: .semibold))
-          .lineLimit(2)
-          .multilineTextAlignment(.center)
-          .minimumScaleFactor(0.6)
-        if list.count >= 2 {
-          Text(list.count == 2 ? list[1].n : "…")
-            .font(.system(size: 8))
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-        } else if let room = list[0].r {
-          Text(room)
-            .font(.system(size: 7)).foregroundColor(.secondary)
-            .lineLimit(1).minimumScaleFactor(0.6)
+    Group {
+      if list.isEmpty {
+        Color.clear
+      } else if list.count == 1 {
+        VStack(spacing: 1) {
+          courseText(list[0].n)
+          if let room = list[0].r {
+            Text(room)
+              .font(.system(size: 7)).foregroundColor(.secondary)
+              .lineLimit(1).minimumScaleFactor(0.6)
+          }
+        }
+      } else {
+        VStack(spacing: 0) {
+          courseText(list[0].n, lines: 1)
+          Divider().opacity(0.4)
+          courseText(list.count == 2 ? list[1].n : "…", lines: 1)
         }
       }
     }
@@ -405,6 +418,7 @@ struct WeekGridView: View {
 }
 
 struct TasksView: View {
+  @Environment(\.widgetFamily) var family
   let entry: KlmsEntry
 
   private static let dueFormatter: DateFormatter = {
@@ -414,6 +428,9 @@ struct TasksView: View {
     return df
   }()
 
+  // Fill the widget: the large family shows many rows, the medium a few.
+  private var maxRows: Int { family == .systemLarge ? 14 : 5 }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
       Text("課題").font(.caption2.bold()).highlight(true)
@@ -421,7 +438,7 @@ struct TasksView: View {
         Text("課題はありません").font(.caption).foregroundColor(.secondary)
       } else {
         // Format: 締切 → コース → 課題名 (e.g. "7/12 14:50 prg 第11回課題A問題")
-        ForEach(Array(entry.tasks.prefix(5).enumerated()), id: \.offset) { item in
+        ForEach(Array(entry.tasks.prefix(maxRows).enumerated()), id: \.offset) { item in
           let task = item.element
           HStack(spacing: 4) {
             if let due = task.due {

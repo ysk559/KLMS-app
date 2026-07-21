@@ -54,7 +54,7 @@ class WidgetBridge {
         ? tasks.where((t) => !settings.excludesTask(t.title, t.courseId))
         : tasks;
     final taskJson = jsonEncode([
-      for (final t in visibleTasks.take(10))
+      for (final t in visibleTasks.take(20))
         {
           'id': t.id,
           't': t.title,

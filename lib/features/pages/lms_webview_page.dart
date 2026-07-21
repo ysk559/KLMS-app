@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/constants.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// Opens any LMS page inside the app, reusing the persistent authenticated
@@ -18,6 +19,7 @@ class LmsWebViewPage extends StatefulWidget {
 
 class _LmsWebViewPageState extends State<LmsWebViewPage> {
   double _progress = 0;
+  InAppWebViewController? _controller;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,19 @@ class _LmsWebViewPageState extends State<LmsWebViewPage> {
         initialSettings: InAppWebViewSettings(
           incognito: false,
           javaScriptEnabled: true,
+          supportMultipleWindows: true,
+          javaScriptCanOpenWindowsAutomatically: true,
         ),
+        onWebViewCreated: (c) => _controller = c,
+        // Keep target="_blank" links inside this authenticated WebView instead
+        // of letting them open in the external browser (unauthenticated).
+        onCreateWindow: (controller, action) async {
+          final url = action.request.url;
+          if (url != null) {
+            await _controller?.loadUrl(urlRequest: URLRequest(url: url));
+          }
+          return false;
+        },
         onProgressChanged: (_, progress) =>
             setState(() => _progress = progress / 100),
       ),
@@ -57,11 +71,23 @@ class _LmsWebViewPageState extends State<LmsWebViewPage> {
 /// inside the app. [heading] is an optional headline shown above the body.
 /// This is the reusable body-only piece behind [HtmlContentPage]; use it
 /// directly when a full Scaffold/AppBar isn't wanted (e.g. ModuleItemPage).
+///
+/// Links tapped inside the content open in an in-app [LmsWebViewPage] (which
+/// reuses the authenticated session) instead of the external browser — the
+/// external browser has no LMS cookies, so those pages answered
+/// "ユーザ認証が必要です".
 class HtmlContentView extends StatelessWidget {
   const HtmlContentView({super.key, required this.html, this.heading});
 
   final String html;
   final String? heading;
+
+  void _openInApp(BuildContext context, WebUri? uri) {
+    final url = uri?.toString();
+    if (url == null || !(url.startsWith('http'))) return;
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => LmsWebViewPage(url: url)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +106,31 @@ class HtmlContentView extends StatelessWidget {
   a { color: #4a6fd4; } img { max-width: 100%; height: auto; }
 </style></head><body>$headingHtml$html</body></html>''';
     return InAppWebView(
-      initialData: InAppWebViewInitialData(data: page),
-      initialSettings: InAppWebViewSettings(javaScriptEnabled: false),
+      initialData: InAppWebViewInitialData(
+        data: page,
+        baseUrl: WebUri(KlmsConstants.baseUrl),
+      ),
+      initialSettings: InAppWebViewSettings(
+        javaScriptEnabled: false,
+        useShouldOverrideUrlLoading: true,
+        supportMultipleWindows: true,
+        javaScriptCanOpenWindowsAutomatically: true,
+      ),
+      // A tapped link: open it in-app (keeps the session) rather than letting
+      // it escape to the external browser.
+      shouldOverrideUrlLoading: (controller, action) async {
+        if (action.navigationType == NavigationType.LINK_ACTIVATED) {
+          _openInApp(context, action.request.url);
+          return NavigationActionPolicy.CANCEL;
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
+      // A target="_blank" link would otherwise spawn a new window / external
+      // browser — route it in-app too.
+      onCreateWindow: (controller, action) async {
+        _openInApp(context, action.request.url);
+        return false;
+      },
     );
   }
 
