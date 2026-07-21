@@ -26,10 +26,14 @@ class _LoginWebViewPageState extends ConsumerState<LoginWebViewPage> {
     // keio.jp / Okta) with a Canvas session cookie set.
     if (url.host != Uri.parse(KlmsConstants.baseUrl).host) return;
     if (url.path.startsWith('/login')) return;
-    final hasSession =
-        await ref.read(authServiceProvider).hasSessionCookie();
+    final auth = ref.read(authServiceProvider);
+    final hasSession = await auth.hasSessionCookie();
     if (!hasSession || !mounted) return;
     _finished = true;
+    // Persist the freshly captured cookies so they survive app restarts and
+    // are reachable from the background sync isolate.
+    await auth.saveSessionCookies();
+    if (!mounted) return;
     ref.read(dbVersionProvider.notifier).state++; // refresh auth status
     ref.read(syncControllerProvider.notifier).syncNow();
     ScaffoldMessenger.of(context).showSnackBar(

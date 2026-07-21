@@ -110,6 +110,9 @@ class _HomeShellState extends ConsumerState<HomeShell>
     // A background sync may have updated the DB while we were away.
     if (state == AppLifecycleState.resumed) {
       ref.read(dbVersionProvider.notifier).state++;
+      // Capture any rotated LMS cookies from in-app browsing so the persisted
+      // copy (used by API calls and the background isolate) stays fresh.
+      ref.read(authServiceProvider).saveSessionCookies();
     }
   }
 

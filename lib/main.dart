@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'background/background_sync.dart';
+import 'data/auth/auth_service.dart';
 import 'data/db/app_database.dart';
 import 'data/notifications/notification_service.dart';
 import 'data/providers.dart';
@@ -25,6 +26,14 @@ Future<void> main() async {
   final database = await AppDatabase.open();
   final notifications = NotificationService();
   await notifications.init();
+
+  // Restore persisted LMS cookies into the WebView store so a logged-in
+  // session survives app restarts (iOS drops session-only cookies on kill).
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    try {
+      await AuthService().restoreCookies();
+    } catch (_) {}
+  }
 
   final stored = prefs.getString(kSettingsPrefsKey);
   final settings = stored != null
