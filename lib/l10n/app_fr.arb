@@ -106,6 +106,8 @@
   "iosSyncNote": "Sur iOS, l'intervalle réel est décidé par le système (selon l'utilisation)",
   "googleCalendarSync": "Synchronisation Google Agenda",
   "googleCalendarSyncDesc": "Ajoute les échéances des devoirs non terminés à votre propre Google Agenda",
+  "googleTasksSync": "Synchroniser avec Google Tasks",
+  "googleTasksSyncDesc": "Ajoute les devoirs non terminés à une liste Google Tasks dédiée",
   "googleCalendarConnected": "Connecté : {email}",
   "@googleCalendarConnected": {"placeholders": {"email": {"type": "String"}}},
   "googleCalendarDisconnect": "Déconnecter (supprime aussi les événements créés)",

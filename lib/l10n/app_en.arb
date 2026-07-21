@@ -106,6 +106,8 @@
   "iosSyncNote": "On iOS the actual interval is decided by the OS (depends on usage)",
   "googleCalendarSync": "Google Calendar sync",
   "googleCalendarSyncDesc": "Add incomplete task deadlines to your own Google Calendar",
+  "googleTasksSync": "Sync to Google Tasks",
+  "googleTasksSyncDesc": "Add incomplete tasks to a dedicated Google Tasks list",
   "googleCalendarConnected": "Connected: {email}",
   "@googleCalendarConnected": {"placeholders": {"email": {"type": "String"}}},
   "googleCalendarDisconnect": "Disconnect (also removes created events)",

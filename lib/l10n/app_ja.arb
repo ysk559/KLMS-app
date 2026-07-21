@@ -116,6 +116,8 @@
   "iosSyncNote": "iOSでは実行間隔はOSが決定します(利用状況に依存)",
   "googleCalendarSync": "Google Calendar同期",
   "googleCalendarSyncDesc": "未完了課題の締切を自分のGoogleカレンダーに登録します",
+  "googleTasksSync": "Google Tasksに同期",
+  "googleTasksSyncDesc": "未完了課題を専用のGoogle Tasksリスト「課題」に追加します",
   "googleCalendarConnected": "連携中: {email}",
   "@googleCalendarConnected": {"placeholders": {"email": {"type": "String"}}},
   "googleCalendarDisconnect": "連携解除(カレンダーから予定も削除)",
