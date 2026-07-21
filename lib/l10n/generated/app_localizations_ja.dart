@@ -47,6 +47,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get upcomingTasks => '直近の課題';
 
   @override
+  String get homeNextClass => '次の授業';
+
+  @override
+  String get homeCurrentClass => '今の授業';
+
+  @override
+  String get homeNoClass => '今後の授業予定はありません';
+
+  @override
   String get recentAnnouncements => '最近のアナウンス';
 
   @override

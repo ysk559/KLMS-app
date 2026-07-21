@@ -47,6 +47,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upcomingTasks => 'Upcoming tasks';
 
   @override
+  String get homeNextClass => 'Next class';
+
+  @override
+  String get homeCurrentClass => 'In class now';
+
+  @override
+  String get homeNoClass => 'No upcoming classes';
+
+  @override
   String get recentAnnouncements => 'Recent announcements';
 
   @override

@@ -47,6 +47,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get upcomingTasks => 'Devoirs à venir';
 
   @override
+  String get homeNextClass => 'Prochain cours';
+
+  @override
+  String get homeCurrentClass => 'Cours en cours';
+
+  @override
+  String get homeNoClass => 'Aucun cours à venir';
+
+  @override
   String get recentAnnouncements => 'Annonces récentes';
 
   @override

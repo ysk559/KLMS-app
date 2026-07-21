@@ -172,6 +172,24 @@ abstract class AppLocalizations {
   /// **'直近の課題'**
   String get upcomingTasks;
 
+  /// No description provided for @homeNextClass.
+  ///
+  /// In ja, this message translates to:
+  /// **'次の授業'**
+  String get homeNextClass;
+
+  /// No description provided for @homeCurrentClass.
+  ///
+  /// In ja, this message translates to:
+  /// **'今の授業'**
+  String get homeCurrentClass;
+
+  /// No description provided for @homeNoClass.
+  ///
+  /// In ja, this message translates to:
+  /// **'今後の授業予定はありません'**
+  String get homeNoClass;
+
   /// No description provided for @recentAnnouncements.
   ///
   /// In ja, this message translates to:
