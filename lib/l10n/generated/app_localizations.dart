@@ -700,6 +700,18 @@ abstract class AppLocalizations {
   /// **'未完了課題の締切を自分のGoogleカレンダーに登録します'**
   String get googleCalendarSyncDesc;
 
+  /// No description provided for @googleTasksSync.
+  ///
+  /// In ja, this message translates to:
+  /// **'Google Tasksに同期'**
+  String get googleTasksSync;
+
+  /// No description provided for @googleTasksSyncDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'未完了課題を専用のGoogle Tasksリスト「課題」に追加します'**
+  String get googleTasksSyncDesc;
+
   /// No description provided for @googleCalendarConnected.
   ///
   /// In ja, this message translates to:

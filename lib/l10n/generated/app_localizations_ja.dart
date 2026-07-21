@@ -329,6 +329,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get googleCalendarSyncDesc => '未完了課題の締切を自分のGoogleカレンダーに登録します';
 
   @override
+  String get googleTasksSync => 'Google Tasksに同期';
+
+  @override
+  String get googleTasksSyncDesc => '未完了課題を専用のGoogle Tasksリスト「課題」に追加します';
+
+  @override
   String googleCalendarConnected(String email) {
     return '連携中: $email';
   }

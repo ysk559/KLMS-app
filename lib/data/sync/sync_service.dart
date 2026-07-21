@@ -123,19 +123,29 @@ class SyncService {
       settings: settings,
     );
 
-    // 8. Google Calendar (one-way, on-device OAuth). Guarded so any failure
-    // (offline, revoked consent, API error) never breaks the caller's sync.
+    // 8. Google Calendar / Tasks (one-way, on-device OAuth). Guarded so any
+    // failure (offline, revoked consent, API error) never breaks the sync.
     try {
-      if (settings.googleCalendarSync) {
-        final calendar = _calendar ??= GoogleCalendarService();
+      if (settings.googleCalendarSync || settings.googleTasksSync) {
+        final google = _calendar ??= GoogleCalendarService();
         final prefs = await SharedPreferences.getInstance();
         final allTasks = await taskRepository.getAll();
-        await calendar.syncTasks(
-          tasks: allTasks,
-          coursesById: coursesById,
-          settings: settings,
-          prefs: prefs,
-        );
+        if (settings.googleCalendarSync) {
+          await google.syncTasks(
+            tasks: allTasks,
+            coursesById: coursesById,
+            settings: settings,
+            prefs: prefs,
+          );
+        }
+        if (settings.googleTasksSync) {
+          await google.syncToTasks(
+            tasks: allTasks,
+            coursesById: coursesById,
+            settings: settings,
+            prefs: prefs,
+          );
+        }
       }
     } catch (_) {}
   }

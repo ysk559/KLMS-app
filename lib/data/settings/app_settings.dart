@@ -52,6 +52,7 @@ class AppSettings {
     this.backgroundSyncMinutes = 30,
     this.lastSyncedAt,
     this.googleCalendarSync = false,
+    this.googleTasksSync = false,
   });
 
   final ThemeMode themeMode;
@@ -81,6 +82,7 @@ class AppSettings {
   /// Whether incomplete task deadlines are pushed to the user's own Google
   /// Calendar (one-way, on-device OAuth; see GoogleCalendarService).
   final bool googleCalendarSync;
+  final bool googleTasksSync;
 
   Duration get reminderOffset =>
       Duration(hours: reminderHours, minutes: reminderMinutes);
@@ -111,6 +113,7 @@ class AppSettings {
     int? backgroundSyncMinutes,
     DateTime? lastSyncedAt,
     bool? googleCalendarSync,
+    bool? googleTasksSync,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -132,6 +135,7 @@ class AppSettings {
           backgroundSyncMinutes ?? this.backgroundSyncMinutes,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       googleCalendarSync: googleCalendarSync ?? this.googleCalendarSync,
+      googleTasksSync: googleTasksSync ?? this.googleTasksSync,
     );
   }
 
@@ -152,6 +156,7 @@ class AppSettings {
         'backgroundSyncMinutes': backgroundSyncMinutes,
         'lastSyncedAt': lastSyncedAt?.toIso8601String(),
         'googleCalendarSync': googleCalendarSync,
+        'googleTasksSync': googleTasksSync,
       });
 
   factory AppSettings.fromJsonString(String source) {
@@ -185,6 +190,7 @@ class AppSettings {
           ? DateTime.tryParse(json['lastSyncedAt'] as String)
           : null,
       googleCalendarSync: json['googleCalendarSync'] as bool? ?? false,
+      googleTasksSync: json['googleTasksSync'] as bool? ?? false,
     );
   }
 }

@@ -339,6 +339,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add incomplete task deadlines to your own Google Calendar';
 
   @override
+  String get googleTasksSync => 'Sync to Google Tasks';
+
+  @override
+  String get googleTasksSyncDesc =>
+      'Add incomplete tasks to a dedicated Google Tasks list';
+
+  @override
   String googleCalendarConnected(String email) {
     return 'Connected: $email';
   }

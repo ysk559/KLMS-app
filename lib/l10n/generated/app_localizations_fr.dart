@@ -338,6 +338,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoute les échéances des devoirs non terminés à votre propre Google Agenda';
 
   @override
+  String get googleTasksSync => 'Synchroniser avec Google Tasks';
+
+  @override
+  String get googleTasksSyncDesc =>
+      'Ajoute les devoirs non terminés à une liste Google Tasks dédiée';
+
+  @override
   String googleCalendarConnected(String email) {
     return 'Connecté : $email';
   }

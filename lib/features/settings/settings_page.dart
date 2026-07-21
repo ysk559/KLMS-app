@@ -165,6 +165,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: Text(l10n.googleCalendarDisconnect),
               onTap: () => _disconnectGoogleCalendar(context, ref, l10n),
             ),
+          SwitchListTile(
+            secondary: const Icon(Icons.check_circle_outline),
+            title: Text(l10n.googleTasksSync),
+            subtitle: Text(l10n.googleTasksSyncDesc),
+            value: settings.googleTasksSync,
+            onChanged: (v) => _toggleGoogleTasksSync(context, ref, l10n, v),
+          ),
           _SectionHeader(l10n.sectionCourses),
           ListTile(
             leading: const Icon(Icons.short_text),
@@ -443,6 +450,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
     setState(() => _googleEmail = account.email);
     notifier.update((s) => s.copyWith(googleCalendarSync: true));
+    messenger.showSnackBar(
+        SnackBar(content: Text(l10n.googleCalendarConnected(account.email))));
+  }
+
+  Future<void> _toggleGoogleTasksSync(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, bool enable) async {
+    final notifier = ref.read(settingsProvider.notifier);
+    final service = ref.read(googleCalendarServiceProvider);
+    if (!enable) {
+      await service.deleteAllTasks(ref.read(sharedPreferencesProvider));
+      notifier.update((s) => s.copyWith(googleTasksSync: false));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final account = await service.connect();
+    if (account == null) {
+      if (context.mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text(l10n.googleCalendarConnectFailed)));
+      }
+      return;
+    }
+    setState(() => _googleEmail = account.email);
+    notifier.update((s) => s.copyWith(googleTasksSync: true));
     messenger.showSnackBar(
         SnackBar(content: Text(l10n.googleCalendarConnected(account.email))));
   }
