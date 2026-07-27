@@ -75,5 +75,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- The app only uses encryption exempt from export documentation: HTTPS
+	     via the OS to the LMS and Google APIs, and no custom cryptography.
+	     Declaring it here removes the per-build export-compliance question in
+	     App Store Connect. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
