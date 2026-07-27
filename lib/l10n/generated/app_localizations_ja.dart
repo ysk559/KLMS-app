@@ -56,6 +56,37 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeNoClass => '今後の授業予定はありません';
 
   @override
+  String get homeThenLabel => 'この後';
+
+  @override
+  String get syncLog => '同期ログ';
+
+  @override
+  String get syncLogDesc => 'バックグラウンド更新が動いているか確認できます';
+
+  @override
+  String get syncLogEmpty => 'まだ記録がありません';
+
+  @override
+  String get syncLogClear => 'ログを消去';
+
+  @override
+  String get googleAccount => 'Google連携アカウント';
+
+  @override
+  String get googleNotConnected => '未連携';
+
+  @override
+  String get googleConnect => 'Googleアカウントを連携';
+
+  @override
+  String get googleDisconnect => '連携を解除';
+
+  @override
+  String get googleDisconnectConfirm =>
+      '連携を解除すると、このアプリが作成したカレンダーとタスクリストを削除します。よろしいですか?';
+
+  @override
   String get recentAnnouncements => '最近のアナウンス';
 
   @override

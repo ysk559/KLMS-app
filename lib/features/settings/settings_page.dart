@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../background/background_sync.dart';
@@ -10,6 +11,7 @@ import '../../core/constants.dart';
 import '../../data/providers.dart';
 import '../../data/settings/settings_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'sync_log_page.dart';
 import '../auth/login_webview_page.dart';
 import 'course_nicknames_page.dart';
 import 'exclude_courses_page.dart';
@@ -31,7 +33,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (ref.read(settingsProvider).googleCalendarSync) {
+    final s = ref.read(settingsProvider);
+    if (s.googleCalendarSync || s.googleTasksSync) {
       _refreshGoogleEmail();
     }
   }
@@ -150,21 +153,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
           ),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: Text(l10n.syncLog),
+            subtitle: Text(l10n.syncLogDesc),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SyncLogPage())),
+          ),
+
+          // --- Google: one account, then what it syncs. ---
+          _SectionHeader('Google'),
+          ListTile(
+            leading: const Icon(Icons.account_circle_outlined),
+            title: Text(l10n.googleAccount),
+            subtitle: Text(_googleEmail ?? l10n.googleNotConnected),
+            trailing: _googleEmail == null
+                ? const Icon(Icons.chevron_right)
+                : TextButton(
+                    onPressed: () => _disconnectGoogle(context, ref, l10n),
+                    child: Text(l10n.googleDisconnect),
+                  ),
+            onTap: _googleEmail == null
+                ? () => _connectGoogle(context, ref, l10n)
+                : null,
+          ),
           SwitchListTile(
             secondary: const Icon(Icons.event_available_outlined),
             title: Text(l10n.googleCalendarSync),
-            subtitle: Text(settings.googleCalendarSync && _googleEmail != null
-                ? l10n.googleCalendarConnected(_googleEmail!)
-                : l10n.googleCalendarSyncDesc),
+            subtitle: Text(l10n.googleCalendarSyncDesc),
             value: settings.googleCalendarSync,
             onChanged: (v) => _toggleGoogleCalendarSync(context, ref, l10n, v),
           ),
-          if (settings.googleCalendarSync)
-            ListTile(
-              leading: const Icon(Icons.link_off),
-              title: Text(l10n.googleCalendarDisconnect),
-              onTap: () => _disconnectGoogleCalendar(context, ref, l10n),
-            ),
           SwitchListTile(
             secondary: const Icon(Icons.check_circle_outline),
             title: Text(l10n.googleTasksSync),
@@ -432,58 +451,40 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<void> _toggleGoogleCalendarSync(BuildContext context, WidgetRef ref,
-      AppLocalizations l10n, bool enable) async {
-    final notifier = ref.read(settingsProvider.notifier);
-    if (!enable) {
-      notifier.update((s) => s.copyWith(googleCalendarSync: false));
-      return;
-    }
-    final messenger = ScaffoldMessenger.of(context);
-    final account = await ref.read(googleCalendarServiceProvider).connect();
-    if (account == null) {
-      if (context.mounted) {
-        messenger.showSnackBar(
-            SnackBar(content: Text(l10n.googleCalendarConnectFailed)));
-      }
-      return;
-    }
-    setState(() => _googleEmail = account.email);
-    notifier.update((s) => s.copyWith(googleCalendarSync: true));
-    messenger.showSnackBar(
-        SnackBar(content: Text(l10n.googleCalendarConnected(account.email))));
-  }
-
-  Future<void> _toggleGoogleTasksSync(BuildContext context, WidgetRef ref,
-      AppLocalizations l10n, bool enable) async {
-    final notifier = ref.read(settingsProvider.notifier);
+  /// Signs in once; both syncs then reuse the same account.
+  Future<GoogleSignInAccount?> _ensureGoogleAccount(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     final service = ref.read(googleCalendarServiceProvider);
-    if (!enable) {
-      await service.deleteAllTasks(ref.read(sharedPreferencesProvider));
-      notifier.update((s) => s.copyWith(googleTasksSync: false));
-      return;
-    }
-    final messenger = ScaffoldMessenger.of(context);
-    final account = await service.connect();
+    final existing = await service.currentOrSilent;
+    final account = existing ?? await service.connect();
     if (account == null) {
       if (context.mounted) {
-        messenger.showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.googleCalendarConnectFailed)));
       }
-      return;
+      return null;
     }
-    setState(() => _googleEmail = account.email);
-    notifier.update((s) => s.copyWith(googleTasksSync: true));
-    messenger.showSnackBar(
-        SnackBar(content: Text(l10n.googleCalendarConnected(account.email))));
+    if (mounted) setState(() => _googleEmail = account.email);
+    return account;
   }
 
-  Future<void> _disconnectGoogleCalendar(
+  Future<void> _connectGoogle(
+      BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
+    final account = await _ensureGoogleAccount(context, ref, l10n);
+    if (account != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.googleCalendarConnected(account.email))));
+    }
+  }
+
+  /// Disconnects the account and removes everything the app created on the
+  /// Google side (its calendar and its task list), then turns both syncs off.
+  Future<void> _disconnectGoogle(
       BuildContext context, WidgetRef ref, AppLocalizations l10n) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        content: Text(l10n.googleCalendarDisconnect),
+        content: Text(l10n.googleDisconnectConfirm),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -498,11 +499,45 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final service = ref.read(googleCalendarServiceProvider);
     final prefs = ref.read(sharedPreferencesProvider);
     await service.deleteAll(prefs);
+    await service.deleteAllTasks(prefs);
     await service.disconnect();
-    setState(() => _googleEmail = null);
-    ref
-        .read(settingsProvider.notifier)
-        .update((s) => s.copyWith(googleCalendarSync: false));
+    if (mounted) setState(() => _googleEmail = null);
+    ref.read(settingsProvider.notifier).update((s) =>
+        s.copyWith(googleCalendarSync: false, googleTasksSync: false));
+  }
+
+  Future<void> _toggleGoogleCalendarSync(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, bool enable) async {
+    final notifier = ref.read(settingsProvider.notifier);
+    if (!enable) {
+      // Turning the sync off must also take the events with it, otherwise the
+      // calendar keeps deadlines the app no longer maintains.
+      await ref
+          .read(googleCalendarServiceProvider)
+          .deleteAll(ref.read(sharedPreferencesProvider));
+      notifier.update((s) => s.copyWith(googleCalendarSync: false));
+      return;
+    }
+    final account = await _ensureGoogleAccount(context, ref, l10n);
+    if (account == null) return;
+    notifier.update((s) => s.copyWith(googleCalendarSync: true));
+    ref.read(syncControllerProvider.notifier).syncNow();
+  }
+
+  Future<void> _toggleGoogleTasksSync(BuildContext context, WidgetRef ref,
+      AppLocalizations l10n, bool enable) async {
+    final notifier = ref.read(settingsProvider.notifier);
+    if (!enable) {
+      await ref
+          .read(googleCalendarServiceProvider)
+          .deleteAllTasks(ref.read(sharedPreferencesProvider));
+      notifier.update((s) => s.copyWith(googleTasksSync: false));
+      return;
+    }
+    final account = await _ensureGoogleAccount(context, ref, l10n);
+    if (account == null) return;
+    notifier.update((s) => s.copyWith(googleTasksSync: true));
+    ref.read(syncControllerProvider.notifier).syncNow();
   }
 }
 

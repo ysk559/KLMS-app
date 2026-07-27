@@ -17,6 +17,7 @@ import '../data/repositories/course_repository.dart';
 import '../data/repositories/task_repository.dart';
 import '../data/settings/app_settings.dart';
 import '../data/settings/settings_controller.dart';
+import '../data/sync/sync_log.dart';
 import '../data/sync/sync_service.dart';
 import '../data/widgets/widget_bridge.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -54,8 +55,13 @@ Future<bool> runBackgroundSync() async {
       ? AppSettings.fromJsonString(stored)
       : const AppSettings();
 
+  await SyncLog.add('background', 'start');
+
   final auth = AuthService();
-  if (!await auth.isLoggedIn()) return true; // nothing to do, don't retry
+  if (!await auth.isLoggedIn()) {
+    await SyncLog.add('background', 'skipped', detail: 'not signed in');
+    return true; // nothing to do, don't retry
+  }
 
   final notifications = NotificationService();
   await notifications.init();
@@ -82,10 +88,17 @@ Future<bool> runBackgroundSync() async {
     );
     settings = settings.copyWith(lastSyncedAt: DateTime.now());
     await prefs.setString(kSettingsPrefsKey, settings.toJsonString());
+    await SyncLog.add('background', 'ok');
     return true;
   } on CanvasAuthException {
-    // Session expired: the user must sign in again from the UI.
+    // Session expired. A silent refresh needs a WebView, which this headless
+    // isolate has no access to, so the next foreground sync will renew it.
+    await SyncLog.add('background', 'auth', detail: 'session expired');
     return true;
+  } catch (e) {
+    await SyncLog.add('background', 'error',
+        detail: e.toString().split('\n').first);
+    rethrow;
   } finally {
     await database.close();
   }

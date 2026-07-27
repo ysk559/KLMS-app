@@ -56,6 +56,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNoClass => 'No upcoming classes';
 
   @override
+  String get homeThenLabel => 'Then';
+
+  @override
+  String get syncLog => 'Sync log';
+
+  @override
+  String get syncLogDesc => 'Check whether background refresh is running';
+
+  @override
+  String get syncLogEmpty => 'No entries yet';
+
+  @override
+  String get syncLogClear => 'Clear log';
+
+  @override
+  String get googleAccount => 'Google account';
+
+  @override
+  String get googleNotConnected => 'Not connected';
+
+  @override
+  String get googleConnect => 'Connect a Google account';
+
+  @override
+  String get googleDisconnect => 'Disconnect';
+
+  @override
+  String get googleDisconnectConfirm =>
+      'Disconnecting deletes the calendar and task list this app created. Continue?';
+
+  @override
   String get recentAnnouncements => 'Recent announcements';
 
   @override

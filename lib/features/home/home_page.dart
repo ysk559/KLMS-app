@@ -27,7 +27,14 @@ class HomePage extends ConsumerWidget {
     final courseMap = ref.watch(courseMapProvider);
     final theme = Theme.of(context);
 
-    final next = _findNextClass(courseMap.values, settings, DateTime.now());
+    final now = DateTime.now();
+    final next = _findNextClass(courseMap.values, settings, now);
+    // The one after it, shown as a small hint — only while it is still today
+    // (a class tomorrow is not useful context here).
+    final following = next == null
+        ? null
+        : _findNextClass(courseMap.values, settings, now,
+            after: (next.dayOffset, next.period));
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +69,10 @@ class HomePage extends ConsumerWidget {
             ],
 
             // Next / current class hero.
-            _NextClassHero(next: next, l10n: l10n),
+            _NextClassHero(
+                next: next,
+                following: following?.dayOffset == 0 ? following : null,
+                l10n: l10n),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -136,9 +146,13 @@ class HomePage extends ConsumerWidget {
 
 /// Frosted hero showing the current or next class.
 class _NextClassHero extends StatelessWidget {
-  const _NextClassHero({required this.next, required this.l10n});
+  const _NextClassHero(
+      {required this.next, required this.following, required this.l10n});
 
   final _NextClass? next;
+
+  /// The class after [next], when it is still on the same day.
+  final _NextClass? following;
   final AppLocalizations l10n;
 
   @override
@@ -216,6 +230,40 @@ class _NextClassHero extends StatelessWidget {
             ],
           ],
         ),
+        if (following != null) ...[
+          const SizedBox(height: 10),
+          Divider(height: 1, color: theme.dividerTheme.color),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text('${l10n.homeThenLabel}  ',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: ink2.withValues(alpha: 0.8))),
+              Expanded(
+                child: Text(
+                  [
+                    following!.course.parsed.displayName,
+                    if (following!.course.parsed.room != null)
+                      following!.course.parsed.room!,
+                  ].join('  ·  '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: ink2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${l10n.period(following!.period)} ${_hm(following!.startMin)}',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: ink2.withValues(alpha: 0.85)),
+              ),
+            ],
+          ),
+        ],
       ],
     );
 
@@ -346,8 +394,15 @@ class _NextClass {
   final bool ongoing;
 }
 
+/// Scans forward from [now] for the first (day, period) cell that has a
+/// visible course. [after] skips everything up to and including that cell, so
+/// callers can ask for "the one after this one".
 _NextClass? _findNextClass(
-    Iterable<Course> courses, AppSettings s, DateTime now) {
+  Iterable<Course> courses,
+  AppSettings s,
+  DateTime now, {
+  (int dayOffset, int period)? after,
+}) {
   final times = s.periodTimes;
   final nowMin = now.hour * 60 + now.minute;
   final todayIso = now.weekday; // 1 = Mon … 7 = Sun
@@ -357,6 +412,10 @@ _NextClass? _findNextClass(
       if (p - 1 >= times.length) continue;
       final t = times[p - 1];
       if (offset == 0 && t.endMinutes <= nowMin) continue;
+      if (after != null &&
+          (offset < after.$1 || (offset == after.$1 && p <= after.$2))) {
+        continue;
+      }
       for (final c in courses) {
         if (c.hidden) continue;
         if (c.parsed.slots

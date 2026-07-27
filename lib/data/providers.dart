@@ -17,6 +17,7 @@ import 'repositories/announcement_repository.dart';
 import 'repositories/course_repository.dart';
 import 'repositories/task_repository.dart';
 import 'settings/settings_controller.dart';
+import 'sync/sync_log.dart';
 import 'sync/sync_service.dart';
 import 'widgets/widget_bridge.dart';
 
@@ -110,16 +111,38 @@ class SyncController extends AsyncNotifier<void> {
     state = await AsyncValue.guard(() async {
       final settings = ref.read(settingsProvider);
       final l10n = _resolveL10n(settings.localeCode);
-      await ref.read(syncServiceProvider).sync(
+      final sync = ref.read(syncServiceProvider);
+
+      Future<void> run() => sync.sync(
             settings: settings,
             l10n: l10n,
             isFirstSync: settings.lastSyncedAt == null,
           );
+
+      try {
+        await run();
+      } on CanvasAuthException {
+        // The Canvas session expired. While the upstream SSO session is still
+        // alive we can renew it silently and carry on without bothering the
+        // user with a login screen.
+        final refreshed =
+            await ref.read(authServiceProvider).refreshSessionSilently();
+        await SyncLog.add('foreground',
+            refreshed ? 'reauth' : 'auth', detail: refreshed ? null : 'expired');
+        if (!refreshed) rethrow;
+        await run();
+      }
+
       ref
           .read(settingsProvider.notifier)
           .update((s) => s.copyWith(lastSyncedAt: DateTime.now()));
       ref.read(dbVersionProvider.notifier).state++;
+      await SyncLog.add('foreground', 'ok');
     });
+    if (state.hasError) {
+      await SyncLog.add('foreground', 'error',
+          detail: state.error.toString().split('\n').first);
+    }
   }
 
   AppLocalizations _resolveL10n(String? localeCode) {

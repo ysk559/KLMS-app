@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -113,13 +114,67 @@ class AuthService {
   }
 
   Future<bool> hasSessionCookie() async {
-    final live = await _webViewCookies();
-    if (live.any((c) => KlmsConstants.sessionCookieNames.contains(c.name))) {
-      return true;
-    }
+    if (await hasLiveSessionCookie()) return true;
     final stored = await _persistedCookies();
     return stored
         .any((c) => KlmsConstants.sessionCookieNames.contains(c.name));
+  }
+
+  /// Whether the *WebView* store currently holds a Canvas session cookie
+  /// (ignores the persisted copy) — used to verify a silent refresh worked.
+  Future<bool> hasLiveSessionCookie() async {
+    final live = await _webViewCookies();
+    return live.any((c) => KlmsConstants.sessionCookieNames.contains(c.name));
+  }
+
+  /// Tries to renew the Canvas session without user interaction by loading the
+  /// LMS login URL in a headless WebView: while the upstream SSO session
+  /// (keio.jp / Okta) is still valid it redirects straight back with a fresh
+  /// Canvas cookie, so the user never sees a login screen. Returns true when a
+  /// session cookie was obtained (and persisted).
+  ///
+  /// Main isolate only — a headless WebView needs the platform view channel.
+  Future<bool> refreshSessionSilently({
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    final host = Uri.parse(KlmsConstants.baseUrl).host;
+    final completer = Completer<bool>();
+    HeadlessInAppWebView? headless;
+
+    Future<void> check(WebUri? url) async {
+      if (completer.isCompleted || url == null) return;
+      // Still bouncing through the identity provider, or back on the login
+      // form (which means the SSO session is gone and we need the user).
+      if (url.host != host) return;
+      if (url.path.startsWith('/login')) return;
+      if (await hasLiveSessionCookie()) {
+        await saveSessionCookies();
+        if (!completer.isCompleted) completer.complete(true);
+      }
+    }
+
+    try {
+      // Start from what we already have so the SSO handshake can reuse it.
+      await restoreCookies();
+      headless = HeadlessInAppWebView(
+        initialUrlRequest: URLRequest(url: WebUri(KlmsConstants.loginUrl)),
+        initialSettings: InAppWebViewSettings(
+          incognito: false,
+          clearCache: false,
+          javaScriptEnabled: true,
+        ),
+        onLoadStop: (_, url) => check(url),
+        onUpdateVisitedHistory: (_, url, __) => check(url),
+      );
+      await headless.run();
+      return await completer.future.timeout(timeout, onTimeout: () => false);
+    } catch (_) {
+      return false;
+    } finally {
+      try {
+        await headless?.dispose();
+      } catch (_) {}
+    }
   }
 
   Future<bool> isLoggedIn() async {

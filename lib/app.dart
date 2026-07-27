@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'core/theme/app_theme.dart';
 import 'data/providers.dart';
 import 'data/settings/settings_controller.dart';
+import 'data/widgets/widget_bridge.dart';
 import 'features/home/home_page.dart';
 import 'features/pages/course_detail_page.dart';
 import 'features/pages/courses_page.dart';
@@ -113,6 +114,14 @@ class _HomeShellState extends ConsumerState<HomeShell>
       // Capture any rotated LMS cookies from in-app browsing so the persisted
       // copy (used by API calls and the background isolate) stays fresh.
       ref.read(authServiceProvider).saveSessionCookies();
+      // iOS background refresh is rare, so make coming back to the app the
+      // reliable moment the home-screen widgets get fresh data.
+      WidgetBridge.updateFromRepos(
+        taskRepository: ref.read(taskRepositoryProvider),
+        courseRepository: ref.read(courseRepositoryProvider),
+        settings: ref.read(settingsProvider),
+      );
+      ref.read(syncControllerProvider.notifier).syncNow();
     }
   }
 

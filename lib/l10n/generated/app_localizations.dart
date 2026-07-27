@@ -190,6 +190,66 @@ abstract class AppLocalizations {
   /// **'今後の授業予定はありません'**
   String get homeNoClass;
 
+  /// No description provided for @homeThenLabel.
+  ///
+  /// In ja, this message translates to:
+  /// **'この後'**
+  String get homeThenLabel;
+
+  /// No description provided for @syncLog.
+  ///
+  /// In ja, this message translates to:
+  /// **'同期ログ'**
+  String get syncLog;
+
+  /// No description provided for @syncLogDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'バックグラウンド更新が動いているか確認できます'**
+  String get syncLogDesc;
+
+  /// No description provided for @syncLogEmpty.
+  ///
+  /// In ja, this message translates to:
+  /// **'まだ記録がありません'**
+  String get syncLogEmpty;
+
+  /// No description provided for @syncLogClear.
+  ///
+  /// In ja, this message translates to:
+  /// **'ログを消去'**
+  String get syncLogClear;
+
+  /// No description provided for @googleAccount.
+  ///
+  /// In ja, this message translates to:
+  /// **'Google連携アカウント'**
+  String get googleAccount;
+
+  /// No description provided for @googleNotConnected.
+  ///
+  /// In ja, this message translates to:
+  /// **'未連携'**
+  String get googleNotConnected;
+
+  /// No description provided for @googleConnect.
+  ///
+  /// In ja, this message translates to:
+  /// **'Googleアカウントを連携'**
+  String get googleConnect;
+
+  /// No description provided for @googleDisconnect.
+  ///
+  /// In ja, this message translates to:
+  /// **'連携を解除'**
+  String get googleDisconnect;
+
+  /// No description provided for @googleDisconnectConfirm.
+  ///
+  /// In ja, this message translates to:
+  /// **'連携を解除すると、このアプリが作成したカレンダーとタスクリストを削除します。よろしいですか?'**
+  String get googleDisconnectConfirm;
+
   /// No description provided for @recentAnnouncements.
   ///
   /// In ja, this message translates to:

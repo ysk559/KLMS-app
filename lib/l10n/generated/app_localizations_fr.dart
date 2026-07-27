@@ -56,6 +56,38 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeNoClass => 'Aucun cours à venir';
 
   @override
+  String get homeThenLabel => 'Ensuite';
+
+  @override
+  String get syncLog => 'Journal de synchronisation';
+
+  @override
+  String get syncLogDesc =>
+      'Vérifier si l\'actualisation en arrière-plan fonctionne';
+
+  @override
+  String get syncLogEmpty => 'Aucune entrée';
+
+  @override
+  String get syncLogClear => 'Effacer le journal';
+
+  @override
+  String get googleAccount => 'Compte Google';
+
+  @override
+  String get googleNotConnected => 'Non connecté';
+
+  @override
+  String get googleConnect => 'Connecter un compte Google';
+
+  @override
+  String get googleDisconnect => 'Déconnecter';
+
+  @override
+  String get googleDisconnectConfirm =>
+      'La déconnexion supprime l\'agenda et la liste de tâches créés par cette application. Continuer ?';
+
+  @override
   String get recentAnnouncements => 'Annonces récentes';
 
   @override
