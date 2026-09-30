@@ -47,6 +47,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String get upcomingTasks => 'Devoirs à venir';
 
   @override
+  String get groupOverdue => 'En retard';
+
+  @override
+  String get groupToday => 'Aujourd\'hui';
+
+  @override
+  String get groupThisWeek => 'Cette semaine';
+
+  @override
+  String get groupLater => 'Plus tard';
+
+  @override
+  String get groupNoDue => 'Sans échéance';
+
+  @override
   String get homeNextClass => 'Prochain cours';
 
   @override

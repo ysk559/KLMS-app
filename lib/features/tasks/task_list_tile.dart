@@ -87,14 +87,26 @@ class _TaskListTileState extends ConsumerState<TaskListTile> {
     final overdue =
         due != null && !displayCompleted && due.isBefore(DateTime.now());
 
+    // Deadline urgency drives the due-date colour, so "overdue" and "due
+    // within a day" read at a glance without adding another badge.
+    final soon = due != null &&
+        !displayCompleted &&
+        !overdue &&
+        due.difference(DateTime.now()) < const Duration(hours: 24);
+    final dueColor = overdue || soon ? scheme.error : null;
+
     return AnimatedOpacity(
       opacity: _fadedOut ? 0 : 1,
       duration: _fadeDuration,
       curve: Curves.easeOut,
       child: ListTile(
         dense: widget.dense,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         leading: Checkbox(
           value: displayCompleted,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
           // A submission that exists on the LMS cannot be "un-done" locally.
           onChanged: task.lmsCompleted ? null : _onChanged,
         ),
@@ -105,7 +117,7 @@ class _TaskListTileState extends ConsumerState<TaskListTile> {
           style: displayCompleted
               ? TextStyle(
                   decoration: TextDecoration.lineThrough, color: scheme.outline)
-              : null,
+              : const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
         subtitle: Row(
           children: [
@@ -126,7 +138,11 @@ class _TaskListTileState extends ConsumerState<TaskListTile> {
                 due != null ? l10n.dueAt(formatDateTimeShort(due)) : l10n.noDueDate,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: overdue ? scheme.error : null),
+                style: TextStyle(
+                  color: dueColor,
+                  fontWeight:
+                      dueColor != null ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
             ),
           ],

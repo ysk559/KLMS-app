@@ -85,13 +85,26 @@ class TimetablePage extends ConsumerWidget {
                 for (final d in days)
                   Expanded(
                     child: Center(
-                      child: Text(
-                        _weekdayLabel(d, locale),
-                        style: TextStyle(
-                          fontWeight: d == currentDay
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: d == currentDay ? scheme.primary : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: d == currentDay
+                            ? BoxDecoration(
+                                color: scheme.primary.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(999),
+                              )
+                            : null,
+                        child: Text(
+                          _weekdayLabel(d, locale),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: d == currentDay
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: d == currentDay
+                                ? scheme.primary
+                                : scheme.onSurface.withValues(alpha: 0.6),
+                          ),
                         ),
                       ),
                     ),
@@ -148,7 +161,9 @@ class _PeriodGutter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = highlighted ? scheme.primary : scheme.outline;
+    final color = highlighted
+        ? scheme.primary
+        : scheme.onSurface.withValues(alpha: 0.45);
     return SizedBox(
       width: 44,
       child: Column(
@@ -160,8 +175,11 @@ class _PeriodGutter extends StatelessWidget {
           Text(
             '$period',
             style: TextStyle(
-              fontWeight: highlighted ? FontWeight.bold : FontWeight.w500,
-              color: highlighted ? scheme.primary : null,
+              fontSize: 15,
+              fontWeight: highlighted ? FontWeight.w800 : FontWeight.w600,
+              color: highlighted
+                  ? scheme.primary
+                  : scheme.onSurface.withValues(alpha: 0.75),
             ),
           ),
           if (time != null)
@@ -185,8 +203,8 @@ class _TimetableCell extends StatelessWidget {
       content = Container(
         margin: const EdgeInsets.symmetric(horizontal: 1.5),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+          color: scheme.onSurface.withValues(alpha: 0.04),
         ),
       );
     } else if (courses.length == 1) {
@@ -206,12 +224,12 @@ class _TimetableCell extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: scheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                      color: scheme.primary.withValues(alpha: 0.10),
                     ),
                     child: Text('…',
                         style: TextStyle(
-                            color: scheme.onSecondaryContainer,
+                            color: scheme.primary,
                             fontWeight: FontWeight.bold)),
                   ),
           ),
@@ -234,13 +252,17 @@ class _CourseChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chipInk = isDark ? scheme.primary : const Color(0xFF021951);
     final parsed = course.parsed;
     return Container(
       width: double.infinity,
       margin: EdgeInsets.symmetric(horizontal: 1.5, vertical: compact ? 1 : 0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(10),
+        color: scheme.primary.withValues(alpha: isDark ? 0.22 : 0.12),
+        border: Border.all(
+            color: scheme.primary.withValues(alpha: isDark ? 0.30 : 0.16)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -261,8 +283,8 @@ class _CourseChip extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: compact ? 9.5 : 11,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                    color: chipInk,
                     height: 1.15,
                   ),
                 ),
@@ -274,7 +296,7 @@ class _CourseChip extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: compact ? 7.5 : 8.5,
-                      color: scheme.onPrimaryContainer.withValues(alpha: 0.7)),
+                      color: chipInk.withValues(alpha: 0.7)),
                 ),
             ],
           ),

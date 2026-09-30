@@ -10,6 +10,7 @@ import '../../background/background_sync.dart';
 import '../../core/constants.dart';
 import '../../data/providers.dart';
 import '../../data/settings/settings_controller.dart';
+import '../../core/theme/glass.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'sync_log_page.dart';
 import '../auth/login_webview_page.dart';
@@ -55,7 +56,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
-        children: [
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+        children: _grouped([
           _SectionHeader(l10n.sectionAppearance),
           ListTile(
             leading: const Icon(Icons.brightness_6_outlined),
@@ -236,10 +238,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               applicationName: 'KLMS App',
             ),
           ),
-          const SizedBox(height: 24),
-        ],
+        ]),
       ),
     );
+  }
+
+  /// Turns the flat "header, tile, tile, header, tile…" list into iOS-style
+  /// inset groups: each header keeps its label and the run of rows after it is
+  /// collected into one rounded card with hairline separators.
+  List<Widget> _grouped(List<Widget> children) {
+    final out = <Widget>[];
+    var run = <Widget>[];
+
+    void flush() {
+      if (run.isEmpty) return;
+      out.add(AppCard(
+        child: Column(
+          children: [
+            for (var i = 0; i < run.length; i++) ...[
+              if (i > 0) const Divider(indent: 56),
+              run[i],
+            ],
+          ],
+        ),
+      ));
+      out.add(const SizedBox(height: 18));
+      run = <Widget>[];
+    }
+
+    for (final child in children) {
+      if (child is _SectionHeader) {
+        flush();
+        out.add(child);
+      } else {
+        run.add(child);
+      }
+    }
+    flush();
+    return out;
   }
 
   Future<void> _pickTheme(
@@ -548,15 +584,6 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-      child: Text(
-        title,
-        style: Theme.of(context)
-            .textTheme
-            .labelLarge
-            ?.copyWith(color: Theme.of(context).colorScheme.primary),
-      ),
-    );
+    return SectionLabel(title);
   }
 }

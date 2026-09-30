@@ -172,6 +172,36 @@ abstract class AppLocalizations {
   /// **'直近の課題'**
   String get upcomingTasks;
 
+  /// No description provided for @groupOverdue.
+  ///
+  /// In ja, this message translates to:
+  /// **'期限切れ'**
+  String get groupOverdue;
+
+  /// No description provided for @groupToday.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日'**
+  String get groupToday;
+
+  /// No description provided for @groupThisWeek.
+  ///
+  /// In ja, this message translates to:
+  /// **'今週'**
+  String get groupThisWeek;
+
+  /// No description provided for @groupLater.
+  ///
+  /// In ja, this message translates to:
+  /// **'これから'**
+  String get groupLater;
+
+  /// No description provided for @groupNoDue.
+  ///
+  /// In ja, this message translates to:
+  /// **'期限なし'**
+  String get groupNoDue;
+
   /// No description provided for @homeNextClass.
   ///
   /// In ja, this message translates to:
