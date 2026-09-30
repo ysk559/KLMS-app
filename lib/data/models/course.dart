@@ -7,6 +7,8 @@ class Course {
     this.courseCode,
     this.nickname,
     this.hidden = false,
+    this.termName,
+    this.termEndAt,
   });
 
   final int id;
@@ -20,8 +22,37 @@ class Course {
   final String? nickname;
   final bool hidden;
 
+  /// Canvas enrollment term (e.g. `2026 秋学期`) and when it ends, when the
+  /// LMS reports them.
+  final String? termName;
+  final DateTime? termEndAt;
+
   ParsedCourseName? _parsed;
   ParsedCourseName get parsed => _parsed ??= CourseNameParser.parse(name);
+
+  /// Whether this course belongs to the academic term running right now.
+  ///
+  /// Canvas keeps last term's enrollments in `active` state for a while after
+  /// the term ends, so "the API returned it" is not enough to put a course on
+  /// the timetable. Canvas' own term end date wins when present; otherwise we
+  /// fall back to the 春/秋 marker KLMS puts in the course name.
+  ///
+  /// Anything we cannot classify (通年, 夏/冬 intensives, unparsable names)
+  /// counts as current — showing one course too many is better than hiding a
+  /// real one.
+  bool get isCurrentTerm => isCurrentTermAt(DateTime.now());
+
+  bool isCurrentTermAt(DateTime now) {
+    final end = termEndAt;
+    if (end != null) return end.isAfter(now);
+    final term = parsed.term;
+    if (term != '春' && term != '秋') return true;
+    return term == currentAcademicTerm(now);
+  }
+
+  /// Keio's academic calendar: 春学期 runs April–August, 秋学期 September–March.
+  static String currentAcademicTerm(DateTime now) =>
+      (now.month >= 4 && now.month <= 8) ? '春' : '秋';
 
   /// Short label to identify the course in lists: nickname if set,
   /// otherwise the parsed course title.
@@ -34,13 +65,21 @@ class Course {
         courseCode: courseCode,
         nickname: nickname ?? this.nickname,
         hidden: hidden ?? this.hidden,
+        termName: termName,
+        termEndAt: termEndAt,
       );
 
-  factory Course.fromApi(Map<String, dynamic> json) => Course(
-        id: json['id'] as int,
-        name: (json['name'] ?? json['course_code'] ?? '?') as String,
-        courseCode: json['course_code'] as String?,
-      );
+  factory Course.fromApi(Map<String, dynamic> json) {
+    // Present when the request asks for `include[]=term`.
+    final term = json['term'] as Map<String, dynamic>?;
+    return Course(
+      id: json['id'] as int,
+      name: (json['name'] ?? json['course_code'] ?? '?') as String,
+      courseCode: json['course_code'] as String?,
+      termName: term?['name'] as String?,
+      termEndAt: DateTime.tryParse(term?['end_at'] as String? ?? '')?.toLocal(),
+    );
+  }
 
   factory Course.fromRow(Map<String, dynamic> row) => Course(
         id: row['id'] as int,
@@ -48,6 +87,8 @@ class Course {
         courseCode: row['course_code'] as String?,
         nickname: row['nickname'] as String?,
         hidden: (row['hidden'] as int? ?? 0) != 0,
+        termName: row['term_name'] as String?,
+        termEndAt: DateTime.tryParse(row['term_end_at'] as String? ?? ''),
       );
 
   Map<String, dynamic> toRow() => {
@@ -56,5 +97,7 @@ class Course {
         'course_code': courseCode,
         'nickname': nickname,
         'hidden': hidden ? 1 : 0,
+        'term_name': termName,
+        'term_end_at': termEndAt?.toIso8601String(),
       };
 }

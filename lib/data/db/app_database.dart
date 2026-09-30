@@ -10,7 +10,16 @@ class AppDatabase {
     final dbPath = path ?? p.join(await getDatabasesPath(), 'klms_app.db');
     final db = await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // v2: remember which academic term a course belongs to, so the
+          // timetable can drop last term's courses (Canvas keeps reporting
+          // them as "active" for a while after the term ends).
+          await db.execute('ALTER TABLE courses ADD COLUMN term_name TEXT');
+          await db.execute('ALTER TABLE courses ADD COLUMN term_end_at TEXT');
+        }
+      },
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE courses(
@@ -18,7 +27,9 @@ class AppDatabase {
             name TEXT NOT NULL,
             course_code TEXT,
             nickname TEXT,
-            hidden INTEGER NOT NULL DEFAULT 0
+            hidden INTEGER NOT NULL DEFAULT 0,
+            term_name TEXT,
+            term_end_at TEXT
           )
         ''');
         await db.execute('''

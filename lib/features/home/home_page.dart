@@ -25,15 +25,16 @@ class HomePage extends ConsumerWidget {
     final tasks = ref.watch(visibleTasksProvider);
     final announcements = ref.watch(announcementsProvider);
     final courseMap = ref.watch(courseMapProvider);
+    final currentCourses = ref.watch(currentCoursesProvider);
     final theme = Theme.of(context);
 
     final now = DateTime.now();
-    final next = _findNextClass(courseMap.values, settings, now);
+    final next = _findNextClass(currentCourses, settings, now);
     // The one after it, shown as a small hint — only while it is still today
     // (a class tomorrow is not useful context here).
     final following = next == null
         ? null
-        : _findNextClass(courseMap.values, settings, now,
+        : _findNextClass(currentCourses, settings, now,
             after: (next.dayOffset, next.period));
 
     return Scaffold(

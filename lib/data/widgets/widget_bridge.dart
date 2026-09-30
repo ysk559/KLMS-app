@@ -66,7 +66,9 @@ class WidgetBridge {
 
     final entries = <Map<String, dynamic>>[];
     for (final course in courses) {
-      if (course.hidden) continue;
+      // Last term's courses linger in the API (and so in the DB) after the
+      // term ends — they must not end up on the home-screen timetable.
+      if (course.hidden || !course.isCurrentTerm) continue;
       for (final slot in course.parsed.slots) {
         entries.add({
           'd': slot.weekday,

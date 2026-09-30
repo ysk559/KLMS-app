@@ -87,4 +87,35 @@ void main() {
       expect(kDefaultPeriodTimes.length, 6);
     });
   });
+
+  group('Course.isCurrentTerm', () {
+    Course named(String name, {DateTime? termEnd}) =>
+        Course(id: 1, name: name, termEndAt: termEnd);
+
+    final autumn = DateTime(2026, 9, 30);
+    final spring = DateTime(2026, 5, 10);
+
+    test('Canvas term end date wins when present', () {
+      final c = named('3-12春［月2］今井倫太 情報工学実験',
+          termEnd: DateTime(2026, 12, 31));
+      // Spring by name, but the LMS says the term runs until December.
+      expect(c.isCurrentTermAt(autumn), isTrue);
+
+      final ended = named('3-12秋［月2］今井倫太 情報工学実験',
+          termEnd: DateTime(2026, 3, 31));
+      expect(ended.isCurrentTermAt(autumn), isFalse);
+    });
+
+    test('falls back to the 春/秋 marker in the course name', () {
+      expect(named('3-12春［月2］今井倫太 情報工学実験').isCurrentTermAt(autumn), isFalse);
+      expect(named('3-12秋［月2］今井倫太 情報工学実験').isCurrentTermAt(autumn), isTrue);
+      expect(named('3-12春［月2］今井倫太 情報工学実験').isCurrentTermAt(spring), isTrue);
+      expect(named('3-12秋［月2］今井倫太 情報工学実験').isCurrentTermAt(spring), isFalse);
+    });
+
+    test('unclassifiable courses stay visible', () {
+      expect(named('3-12通年［月2］今井倫太 演習').isCurrentTermAt(autumn), isTrue);
+      expect(named('集中講義 データ科学').isCurrentTermAt(autumn), isTrue);
+    });
+  });
 }

@@ -73,6 +73,14 @@ final courseMapProvider = Provider<Map<int, Course>>((ref) {
   return {for (final c in courses) c.id: c};
 });
 
+/// Courses of the academic term running right now. Canvas keeps last term's
+/// enrollments "active" for a while, so schedule views (timetable, next class,
+/// widgets) must filter rather than show everything the API returned.
+final currentCoursesProvider = Provider<List<Course>>((ref) {
+  final courses = ref.watch(coursesProvider).value ?? const <Course>[];
+  return courses.where((c) => c.isCurrentTerm).toList();
+});
+
 final tasksProvider = FutureProvider<List<TaskItem>>((ref) {
   ref.watch(dbVersionProvider);
   return ref.watch(taskRepositoryProvider).getAll();

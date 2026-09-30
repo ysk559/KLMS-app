@@ -28,16 +28,31 @@ class CourseRepository {
     for (final course in courses) {
       batch.rawInsert(
         '''
-        INSERT INTO courses(id, name, course_code, hidden)
-        VALUES(?, ?, ?, 0)
+        INSERT INTO courses(id, name, course_code, hidden, term_name, term_end_at)
+        VALUES(?, ?, ?, 0, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name,
-          course_code = excluded.course_code
+          course_code = excluded.course_code,
+          term_name = excluded.term_name,
+          term_end_at = excluded.term_end_at
         ''',
-        [course.id, course.name, course.courseCode],
+        [
+          course.id,
+          course.name,
+          course.courseCode,
+          course.termName,
+          course.termEndAt?.toIso8601String(),
+        ],
       );
     }
     await batch.commit(noResult: true);
+  }
+
+  /// Courses belonging to the academic term running right now — what the
+  /// timetable and "next class" views should be built from.
+  Future<List<Course>> getCurrent({bool includeHidden = true}) async {
+    final all = await getAll(includeHidden: includeHidden);
+    return all.where((c) => c.isCurrentTerm).toList();
   }
 
   Future<void> setNickname(int courseId, String? nickname) async {

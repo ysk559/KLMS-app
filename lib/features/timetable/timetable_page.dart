@@ -23,7 +23,7 @@ class TimetablePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(settingsProvider);
-    final courses = ref.watch(coursesProvider).value ?? const <Course>[];
+    final courses = ref.watch(currentCoursesProvider);
 
     final days = [
       for (var d = settings.timetableFirstDay;
