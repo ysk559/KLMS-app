@@ -117,5 +117,15 @@ void main() {
       expect(named('3-12通年［月2］今井倫太 演習').isCurrentTermAt(autumn), isTrue);
       expect(named('集中講義 データ科学').isCurrentTermAt(autumn), isTrue);
     });
+
+    test('courseIsCurrentTerm keeps tasks of unknown courses', () {
+      final byId = <int, Course>{
+        1: Course(id: 1, name: '3-12春［月2］今井倫太 実験', termEndAt: DateTime(2026, 3, 31)),
+        2: Course(id: 2, name: '3-12秋［火3］今井倫太 演習', termEndAt: DateTime(2027, 3, 31)),
+      };
+      expect(Course.courseIsCurrentTerm(1, byId), isFalse); // last term
+      expect(Course.courseIsCurrentTerm(2, byId), isTrue);  // this term
+      expect(Course.courseIsCurrentTerm(99, byId), isTrue); // unknown course
+    });
   });
 }

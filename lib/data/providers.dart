@@ -81,9 +81,21 @@ final currentCoursesProvider = Provider<List<Course>>((ref) {
   return courses.where((c) => c.isCurrentTerm).toList();
 });
 
-final tasksProvider = FutureProvider<List<TaskItem>>((ref) {
+final _allTasksProvider = FutureProvider<List<TaskItem>>((ref) {
   ref.watch(dbVersionProvider);
   return ref.watch(taskRepositoryProvider).getAll();
+});
+
+/// Tasks of the term running now. Last term's assignments stay in the DB (and
+/// keep coming back from the API while Canvas reports the old enrollment as
+/// active), but they are done with — they must not pile up under "期限切れ".
+final tasksProvider = Provider<AsyncValue<List<TaskItem>>>((ref) {
+  final tasks = ref.watch(_allTasksProvider);
+  final courses = ref.watch(courseMapProvider);
+  if (courses.isEmpty) return tasks;
+  return tasks.whenData((list) => list
+      .where((t) => Course.courseIsCurrentTerm(t.courseId, courses))
+      .toList());
 });
 
 /// Tasks after applying the exclusion rules (when the user opted to hide

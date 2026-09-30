@@ -50,9 +50,13 @@ class WidgetBridge {
     }
     final coursesById = {for (final c in courses) c.id: c};
 
+    // Last term's assignments keep coming back from the API while Canvas still
+    // reports the old enrollment as active — they don't belong on the widget.
+    final currentTasks =
+        tasks.where((t) => Course.courseIsCurrentTerm(t.courseId, coursesById));
     final visibleTasks = settings.excludeAlsoFromList
-        ? tasks.where((t) => !settings.excludesTask(t.title, t.courseId))
-        : tasks;
+        ? currentTasks.where((t) => !settings.excludesTask(t.title, t.courseId))
+        : currentTasks;
     final taskJson = jsonEncode([
       for (final t in visibleTasks.take(20))
         {

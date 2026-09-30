@@ -54,6 +54,14 @@ class Course {
   static String currentAcademicTerm(DateTime now) =>
       (now.month >= 4 && now.month <= 8) ? '春' : '秋';
 
+  /// Whether something attached to [courseId] (a task, a widget row) belongs
+  /// to the term running now. A course we have no record of counts as current,
+  /// on the same "never hide a real one" principle as [isCurrentTerm].
+  static bool courseIsCurrentTerm(int courseId, Map<int, Course> byId) {
+    final course = byId[courseId];
+    return course == null || course.isCurrentTerm;
+  }
+
   /// Short label to identify the course in lists: nickname if set,
   /// otherwise the parsed course title.
   String get shortLabel =>

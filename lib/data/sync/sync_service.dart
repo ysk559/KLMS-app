@@ -4,6 +4,7 @@ import '../../core/utils/formatting.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../api/canvas_client.dart';
 import '../calendar/google_calendar_service.dart';
+import '../models/course.dart';
 import '../notifications/notification_service.dart';
 import '../repositories/announcement_repository.dart';
 import '../repositories/course_repository.dart';
@@ -101,7 +102,9 @@ class SyncService {
     }
 
     // 6. Deadline reminders.
-    final incomplete = await taskRepository.getIncomplete();
+    final incomplete = (await taskRepository.getIncomplete())
+        .where((t) => Course.courseIsCurrentTerm(t.courseId, coursesById))
+        .toList();
     await notifications.rescheduleDeadlineReminders(
       incompleteTasks: incomplete,
       offset: settings.reminderOffset,
@@ -129,7 +132,9 @@ class SyncService {
       if (settings.googleCalendarSync || settings.googleTasksSync) {
         final google = _calendar ??= GoogleCalendarService();
         final prefs = await SharedPreferences.getInstance();
-        final allTasks = await taskRepository.getAll();
+        final allTasks = (await taskRepository.getAll())
+            .where((t) => Course.courseIsCurrentTerm(t.courseId, coursesById))
+            .toList();
         if (settings.googleCalendarSync) {
           await google.syncTasks(
             tasks: allTasks,
