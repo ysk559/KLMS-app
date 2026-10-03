@@ -70,6 +70,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>jp.keio.klms.klmsApp.periodicSync</string>
+		<string>jp.keio.klms.klmsApp.processingSync</string>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

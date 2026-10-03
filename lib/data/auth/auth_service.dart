@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -121,10 +122,50 @@ class AuthService {
   }
 
   /// Whether the *WebView* store currently holds a Canvas session cookie
-  /// (ignores the persisted copy) — used to verify a silent refresh worked.
+  /// (ignores the persisted copy).
   Future<bool> hasLiveSessionCookie() async {
     final live = await _webViewCookies();
     return live.any((c) => KlmsConstants.sessionCookieNames.contains(c.name));
+  }
+
+  /// Proves the stored credentials actually work, by calling a cheap
+  /// authenticated endpoint.
+  ///
+  /// Cookie *presence* is not proof of anything: an expired Canvas session
+  /// leaves its cookie sitting in the store, which is exactly what made the
+  /// first silent-refresh attempt report success and then keep getting 401s.
+  Future<bool> verifySession() async {
+    final headers = await authHeaders();
+    if (headers.isEmpty) return false;
+    try {
+      final response = await Dio().get<dynamic>(
+        '${KlmsConstants.apiBase}/users/self',
+        options: Options(
+          headers: {...headers, 'Accept': 'application/json'},
+          followRedirects: false,
+          validateStatus: (s) => s != null && s < 500,
+          sendTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+        ),
+      );
+      if (response.statusCode != 200) return false;
+      // An expired cookie session answers 200 with the HTML login page rather
+      // than JSON, so check the shape as well as the status.
+      final data = response.data;
+      return data is Map && data['id'] != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Drops every LMS-domain credential we hold (WebView store + the persisted
+  /// mirror). The identity provider's own cookies live on other domains and
+  /// are deliberately left alone, so SSO can still sign us back in.
+  Future<void> _clearLmsCookies() async {
+    await _storage.delete(key: _cookiesKey);
+    try {
+      await _cookieManager.deleteCookies(url: WebUri(KlmsConstants.baseUrl));
+    } catch (_) {}
   }
 
   /// Tries to renew the Canvas session without user interaction by loading the
@@ -137,6 +178,10 @@ class AuthService {
   Future<bool> refreshSessionSilently({
     Duration timeout = const Duration(seconds: 30),
   }) async {
+    // Nothing to renew if what we already hold still works. This also keeps
+    // the expensive WebView path off the common case.
+    if (await verifySession()) return true;
+
     final host = Uri.parse(KlmsConstants.baseUrl).host;
     final completer = Completer<bool>();
     HeadlessInAppWebView? headless;
@@ -147,15 +192,21 @@ class AuthService {
       // form (which means the SSO session is gone and we need the user).
       if (url.host != host) return;
       if (url.path.startsWith('/login')) return;
-      if (await hasLiveSessionCookie()) {
-        await saveSessionCookies();
-        if (!completer.isCompleted) completer.complete(true);
+      if (!await hasLiveSessionCookie()) return;
+      await saveSessionCookies();
+      // The landing page can render before the new session is usable, and a
+      // leftover cookie would otherwise look like success — only a working
+      // API call counts.
+      if (await verifySession() && !completer.isCompleted) {
+        completer.complete(true);
       }
     }
 
     try {
-      // Start from what we already have so the SSO handshake can reuse it.
-      await restoreCookies();
+      // The Canvas session is known dead at this point, so clear it: otherwise
+      // /login just replays the stale cookie instead of re-running the SSO
+      // handshake that mints a fresh one.
+      await _clearLmsCookies();
       headless = HeadlessInAppWebView(
         initialUrlRequest: URLRequest(url: WebUri(KlmsConstants.loginUrl)),
         initialSettings: InAppWebViewSettings(

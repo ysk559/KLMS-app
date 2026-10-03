@@ -21,6 +21,14 @@ import workmanager_apple
       withIdentifier: "jp.keio.klms.klmsApp.periodicSync",
       frequency: NSNumber(value: 30 * 60)
     )
+    // BGProcessingTask: iOS schedules these while the device is idle (and, if
+    // asked, charging), which is the overnight window where the LMS session
+    // would otherwise go stale. Registered as well as the refresh task so we
+    // get both chances; identifiers must also be in
+    // BGTaskSchedulerPermittedIdentifiers.
+    WorkmanagerPlugin.registerBGProcessingTask(
+      withIdentifier: "jp.keio.klms.klmsApp.processingSync"
+    )
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

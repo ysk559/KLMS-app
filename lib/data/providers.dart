@@ -144,12 +144,20 @@ class SyncController extends AsyncNotifier<void> {
       } on CanvasAuthException {
         // The Canvas session expired. While the upstream SSO session is still
         // alive we can renew it silently and carry on without bothering the
-        // user with a login screen.
+        // user with a login screen. A successful refresh is one that proved
+        // itself with a real API call, so retrying here is worth it.
         final refreshed =
             await ref.read(authServiceProvider).refreshSessionSilently();
-        await SyncLog.add('foreground',
-            refreshed ? 'reauth' : 'auth', detail: refreshed ? null : 'expired');
-        if (!refreshed) rethrow;
+        if (!refreshed) {
+          // SSO is gone too: the stale cookies have been dropped, so let the
+          // UI fall back to the "please sign in" state instead of showing a
+          // generic sync failure.
+          await SyncLog.add('foreground', 'auth',
+              detail: 're-login required');
+          ref.read(dbVersionProvider.notifier).state++;
+          rethrow;
+        }
+        await SyncLog.add('foreground', 'reauth');
         await run();
       }
 

@@ -29,6 +29,12 @@ const String kAndroidSyncTask = 'klms_periodic_sync';
 /// (BGTaskSchedulerPermittedIdentifiers) and AppDelegate.swift.
 const String kIosSyncTask = 'jp.keio.klms.klmsApp.periodicSync';
 
+/// iOS BGProcessingTask identifier. Refresh tasks are short and heavily
+/// rationed; processing tasks get scheduled while the device is idle/charging,
+/// which is exactly the overnight window where a session would otherwise go
+/// stale. Registered alongside the refresh task so we get both chances.
+const String kIosProcessingTask = 'jp.keio.klms.klmsApp.processingSync';
+
 /// Entry point invoked by the OS in a background isolate.
 @pragma('vm:entry-point')
 void backgroundSyncDispatcher() {
@@ -187,10 +193,23 @@ class BackgroundSyncScheduler {
           existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
         );
       } else {
-        // iOS frequency is fixed natively in AppDelegate.swift; the OS
-        // decides the actual cadence based on app usage.
+        // iOS frequency is fixed natively in AppDelegate.swift; the OS decides
+        // the actual cadence based on app usage, and may decline entirely when
+        // "Background App Refresh" is off. Ask for both task kinds so an idle
+        // or charging device still gets a chance to run us.
         await Workmanager().registerPeriodicTask(kIosSyncTask, kIosSyncTask);
+        await Workmanager().registerProcessingTask(
+          kIosProcessingTask,
+          kIosProcessingTask,
+          constraints: Constraints(networkType: NetworkType.connected),
+        );
+        // Record that we asked, so the sync log can tell "iOS never ran it"
+        // apart from "we never scheduled it".
+        await SyncLog.add('background', 'scheduled');
       }
-    } catch (_) {}
+    } catch (e) {
+      final reason = e.toString().split('\n').first;
+      await SyncLog.add('background', 'error', detail: 'schedule failed: $reason');
+    }
   }
 }
